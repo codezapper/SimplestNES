@@ -177,3 +177,87 @@ void BEQ(char *address) {
         addressing[0xF0].cycles = 3;
     }
 }
+
+void BIT(char *address) {
+    int result = A & *address;
+
+    ZF = 0;
+    if (0 == result) {
+        ZF = 1;
+    }
+
+    NF = 0;
+    if (check_bit(*address, 7)) {
+        NF = 1;
+    }
+
+    OF = 0;
+    if (check_bit(*address, 6)) {
+        OF = 1;
+    }
+}
+
+void BMI(char *address) {
+    addressing[0xF0].cycles = 2;
+    if (NF == 1) {
+        PC += *address;
+        addressing[0xF0].cycles = 3;
+    }
+}
+
+void BNE(char *address) {
+    addressing[0xD0].cycles = 2;
+    if (ZF == 0) {
+        PC += *address;
+        addressing[0xD0].cycles = 3;
+    }
+}
+
+void BPL(char *address) {
+    addressing[0x10].cycles = 2;
+    if (NF == 0) {
+        PC += *address;
+        addressing[0x10].cycles = 3;
+    }
+}
+
+void BRK(char *address) {
+    // TODO: Implement pushing to stack
+    // - the program counter and processor status are pushed on the stack
+    // - the IRQ interrupt vector at $FFFE/F is loaded into the PC
+    // - the break flag in the status is set to one
+
+    BC = 1;
+}
+
+void BVC(char *address) {
+    addressing[0x50].cycles = 2;
+    if (OF == 0) {
+        PC += *address;
+        addressing[0x50].cycles = 3;
+    }
+}
+
+void BVS(char *address) {
+    addressing[0x70].cycles = 2;
+    if (OF == 0) {
+        PC += *address;
+        addressing[0x70].cycles = 3;
+    }
+}
+
+void CLC(char *address) {
+    CF = 0;
+}
+
+void CLD(char *address) {
+    DM = 0;
+}
+
+void CLI(char *address) {
+    ID = 0;
+}
+
+void CLV(char *address) {
+    OF = 0;
+}
