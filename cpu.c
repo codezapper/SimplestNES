@@ -89,7 +89,6 @@ short check_bit(int number, int bit) {
 void init_ram()
 {
     memset(RAM, 0, sizeof(RAM));
-    // init_addressing();
 }
 
 void LDA(char *address) {
@@ -135,3 +134,6 @@ void AND(char *address) {
 
 }
 
+void ASL(char *address) {
+    // Not implemented yet
+}
