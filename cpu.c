@@ -48,7 +48,7 @@ int8_t OF = 0;
 int8_t NF = 0;
 
 int cycles_cnt = 0;
-char sp_immediate = 0;
+char extra_value = 0;
 
 extern struct addressing_data addressing[0xFF];
 
@@ -57,8 +57,9 @@ char *get_pointer_to_ram(int16_t opcode, int16_t first, int16_t second) {
         case ACCUMULATOR:
             return &A;
         case IMMEDIATE:
-            sp_immediate = first;
-            return &sp_immediate;
+        case RELATIVE:
+            extra_value = first;
+            return &extra_value;
         case ZEROPAGE:
             return &RAM[first];
         case ZEROPAGEX:
@@ -135,5 +136,44 @@ void AND(char *address) {
 }
 
 void ASL(char *address) {
-    // Not implemented yet
+    *address <<= 1;
+
+    ZF = 0;
+    if (0 == A) {
+        ZF = 1;
+    }
+
+    if (check_bit(*address, 7)) {
+        NF = 1;
+    }
+
+    CF = 0;
+    if (*address > 255) {
+        *address &= 0xFF;
+        CF = 1;
+    }
+}
+
+void BCC(char *address) {
+    addressing[0x90].cycles = 2;
+    if (CF == 0) {
+        PC += *address;
+        addressing[0x90].cycles = 3;
+    }
+}
+
+void BCS(char *address) {
+    addressing[0xB0].cycles = 2;
+    if (CF == 1) {
+        PC += *address;
+        addressing[0xB0].cycles = 3;
+    }
+}
+
+void BEQ(char *address) {
+    addressing[0xF0].cycles = 2;
+    if (ZF == 1) {
+        PC += *address;
+        addressing[0xF0].cycles = 3;
+    }
 }
