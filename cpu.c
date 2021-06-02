@@ -261,3 +261,48 @@ void CLI(char *address) {
 void CLV(char *address) {
     OF = 0;
 }
+
+void CMP(char *address) {
+    CF = 0;
+    ZF = 0;
+    NF = 0;
+    if (A >= *address) {
+        CF = 1;
+    }
+
+    if (A == *address) {
+        ZF = 1;
+    }
+
+    NF = check_bit(A-*address, 7);
+}
+
+void CPX(char *address) {
+    CF = 0;
+    ZF = 0;
+    NF = 0;
+    if (X >= *address) {
+        CF = 1;
+    }
+
+    if (X == *address) {
+        ZF = 1;
+    }
+
+    NF = check_bit(X-*address, 7);
+}
+
+void CPY(char *address) {
+    CF = 0;
+    ZF = 0;
+    NF = 0;
+    if (Y >= *address) {
+        CF = 1;
+    }
+
+    if (Y == *address) {
+        ZF = 1;
+    }
+
+    NF = check_bit(Y-*address, 7);
+}

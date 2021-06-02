@@ -18,3 +18,6 @@ void CLC(char *address);
 void CLD(char *address);
 void CLI(char *address);
 void CLV(char *address);
+void CMP(char *address);
+void CPX(char *address);
+void CPY(char *address);
