@@ -26,3 +26,6 @@ void DEX(char *address);
 void DEY(char *address);
 void EOR(char *address);
 void INC(char *address);
+void INX(char *address);
+void INY(char *address);
+void JMP(char *address);

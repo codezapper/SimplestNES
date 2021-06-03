@@ -9,8 +9,9 @@
 #define ABSOLUTEX       8
 #define ABSOLUTEY       9
 #define INDEXED         10
-#define INDIRECTX       11
-#define INDIRECTY       12
+#define INDIRECT        11
+#define INDIRECTX       12
+#define INDIRECTY       13
 
 #define INVALID_IMMEDIATE -32768
 

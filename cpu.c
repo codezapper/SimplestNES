@@ -76,6 +76,9 @@ char *get_pointer_to_ram(int16_t opcode, int16_t first, int16_t second) {
             return &RAM[first + X];
         case INDIRECTY:
             return &RAM[first + Y];
+        case INDIRECT:
+            //TODO: Implemented indirect for JMP
+            return 0;
     }
 }
 
@@ -352,5 +355,29 @@ void INC(char *address) {
         ZF = 1;
     }
     NF = check_bit(*address, 7);
+}
+
+void INX(char *address) {
+    X += 1;
+
+    ZF = 0;
+    if (0 == X) {
+        ZF = 1;
+    }
+    NF = check_bit(X, 7);
+}
+
+void INY(char *address) {
+    Y += 1;
+
+    ZF = 0;
+    if (0 == Y) {
+        ZF = 1;
+    }
+    NF = check_bit(Y, 7);
+}
+
+void JMP(char *address) {
+    PC = *address;
 }
 
