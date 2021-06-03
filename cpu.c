@@ -265,7 +265,6 @@ void CLV(char *address) {
 void CMP(char *address) {
     CF = 0;
     ZF = 0;
-    NF = 0;
     if (A >= *address) {
         CF = 1;
     }
@@ -280,7 +279,6 @@ void CMP(char *address) {
 void CPX(char *address) {
     CF = 0;
     ZF = 0;
-    NF = 0;
     if (X >= *address) {
         CF = 1;
     }
@@ -295,7 +293,6 @@ void CPX(char *address) {
 void CPY(char *address) {
     CF = 0;
     ZF = 0;
-    NF = 0;
     if (Y >= *address) {
         CF = 1;
     }
@@ -306,3 +303,54 @@ void CPY(char *address) {
 
     NF = check_bit(Y-*address, 7);
 }
+
+void DEC(char *address) {
+    *address -= 1;
+
+    ZF = 0;
+    if (0 == *address) {
+        ZF = 1;
+    }
+    NF = check_bit(*address, 7);
+}
+
+void DEX(char *address) {
+    X -= 1;
+
+    ZF = 0;
+    if (0 == X) {
+        ZF = 1;
+    }
+    NF = check_bit(X, 7);
+}
+
+void DEY(char *address) {
+    Y -= 1;
+
+    ZF = 0;
+    if (0 == Y) {
+        ZF = 1;
+    }
+    NF = check_bit(Y, 7);
+}
+
+void EOR(char *address) {
+    A ^= *address;
+
+    ZF = 0;
+    if (0 == A) {
+        ZF = 1;
+    }
+    NF = check_bit(A, 7);
+}
+
+void INC(char *address) {
+    *address += 1;
+
+    ZF = 0;
+    if (0 == *address) {
+        ZF = 1;
+    }
+    NF = check_bit(*address, 7);
+}
+

@@ -21,3 +21,8 @@ void CLV(char *address);
 void CMP(char *address);
 void CPX(char *address);
 void CPY(char *address);
+void DEC(char *address);
+void DEX(char *address);
+void DEY(char *address);
+void EOR(char *address);
+void INC(char *address);
