@@ -38,6 +38,7 @@ int8_t SP = 0;
 int8_t A = 0;
 int8_t X = 0;
 int8_t Y = 0;
+int8_t PS = 0;
 
 int8_t CF = 0;
 int8_t ZF = 0;
@@ -101,76 +102,95 @@ short check_bit(int number, int bit) {
     return 0;
 }
 
+char set_bit(char value, int bit) {
+    return value | (1 << bit);
+}
+
+char clear_bit(char value, int bit) {
+    return value | (1 << bit);
+}
+
+
 void init_ram()
 {
     memset(RAM, 0, sizeof(RAM));
 }
 
 void LDA(char *address) {
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+
     A = *address;
     if (0 == A) {
-        ZF = 1;
+        PS = set_bit(PS, ZF);
     }
     if (check_bit(A, 7)) {
-        NF = 1;
+        PS = set_bit(PS, NF);
     }
     PC += 1;
 }
 
 void ADC(char *address) {
     int result = A + *address + CF;
+    PS = clear_bit(PS, CF);
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+    PS = clear_bit(PS, OF);
 
     if (result > 256) {
-        CF = 1;
+        PS = set_bit(PS, CF);
     }
     A = result;
     if (0 == A) {
-        ZF = 1;
+        PS = set_bit(PS, ZF);
     }
     if (check_bit(A, 7)) {
-        NF = 1;
+        PS = set_bit(PS, NF);
     }
 
-    OF = 0;
     if ((127 < A) || (-128 > A)) {
-        OF = 1;
+        PS = set_bit(PS, OF);
     }
     PC += 1;
 }
 
 void AND(char *address) {
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+
     A &= *address;
     if (0 == A) {
-        ZF = 1;
+        PS = set_bit(PS, ZF);
     }
     if (check_bit(A, 7)) {
-        NF = 1;
+        PS = set_bit(PS, NF);
     }
-
 }
 
 void ASL(char *address) {
     *address <<= 1;
 
-    ZF = 0;
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+    PS = clear_bit(PS,CF);
+
     if (0 == A) {
-        ZF = 1;
+        PS = set_bit(PS, ZF);
     }
 
     if (check_bit(*address, 7)) {
-        NF = 1;
+        PS = set_bit(PS, NF);
     }
 
-    CF = 0;
     if (*address > 255) {
         *address &= 0xFF;
-        CF = 1;
+        PS = set_bit(PS, CF);
     }
 }
 
 void BCC(char *address) {
     addressing[0x90].cycles = 2;
-    if (CF == 0) {
+    if (check_bit(PS, CF) == 0) {
         PC += *address;
         addressing[0x90].cycles = 3;
     }
@@ -178,7 +198,7 @@ void BCC(char *address) {
 
 void BCS(char *address) {
     addressing[0xB0].cycles = 2;
-    if (CF == 1) {
+    if (check_bit(PS, CF) == 1) {
         PC += *address;
         addressing[0xB0].cycles = 3;
     }
@@ -186,7 +206,7 @@ void BCS(char *address) {
 
 void BEQ(char *address) {
     addressing[0xF0].cycles = 2;
-    if (ZF == 1) {
+    if (check_bit(PS, ZF) == 1) {
         PC += *address;
         addressing[0xF0].cycles = 3;
     }
@@ -195,17 +215,18 @@ void BEQ(char *address) {
 void BIT(char *address) {
     int result = A & *address;
 
-    ZF = 0;
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+    PS = clear_bit(PS, OF);
+
     if (0 == result) {
-        ZF = 1;
+        PS = set_bit(PS, ZF);
     }
 
-    NF = 0;
     if (check_bit(*address, 7)) {
-        NF = 1;
+        PS = set_bit(PS, NF);
     }
 
-    OF = 0;
     if (check_bit(*address, 6)) {
         OF = 1;
     }
@@ -221,7 +242,7 @@ void BMI(char *address) {
 
 void BNE(char *address) {
     addressing[0xD0].cycles = 2;
-    if (ZF == 0) {
+    if (check_bit(PS, ZF) == 0) {
         PC += *address;
         addressing[0xD0].cycles = 3;
     }
@@ -229,7 +250,7 @@ void BNE(char *address) {
 
 void BPL(char *address) {
     addressing[0x10].cycles = 2;
-    if (NF == 0) {
+    if (check_bit(PS, NF) == 0) {
         PC += *address;
         addressing[0x10].cycles = 3;
     }
@@ -246,7 +267,7 @@ void BRK(char *address) {
 
 void BVC(char *address) {
     addressing[0x50].cycles = 2;
-    if (OF == 0) {
+    if (check_bit(PS, OF) == 0) {
         PC += *address;
         addressing[0x50].cycles = 3;
     }
@@ -254,65 +275,73 @@ void BVC(char *address) {
 
 void BVS(char *address) {
     addressing[0x70].cycles = 2;
-    if (OF == 0) {
+    if (check_bit(PS, OF) == 0) {
         PC += *address;
         addressing[0x70].cycles = 3;
     }
 }
 
 void CLC(char *address) {
-    CF = 0;
+    PS = clear_bit(PS, CF);
 }
 
 void CLD(char *address) {
-    DM = 0;
+    PS = clear_bit(PS, DM);
 }
 
 void CLI(char *address) {
-    ID = 0;
+    PS = clear_bit(PS, ID);
 }
 
 void CLV(char *address) {
-    OF = 0;
+    PS = clear_bit(PS, OF);
 }
 
 void CMP(char *address) {
-    CF = 0;
-    ZF = 0;
+    PS = clear_bit(PS, CF);
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+
     if (A >= *address) {
-        CF = 1;
+        PS = set_bit(PS, CF);
     }
 
     if (A == *address) {
-        ZF = 1;
+        PS = set_bit(PS, ZF);
     }
 
-    NF = check_bit(A-*address, 7);
+    if (check_bit(A-*address, 7) == 1) {
+        PS = set_bit(PS, NF);
+    }
 }
 
 void CPX(char *address) {
-    CF = 0;
-    ZF = 0;
+    PS = clear_bit(PS, CF);
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+
     if (X >= *address) {
-        CF = 1;
+        PS = set_bit(PS, CF);
     }
 
     if (X == *address) {
-        ZF = 1;
+        PS = set_bit(PS, ZF);
     }
 
-    NF = check_bit(X-*address, 7);
+    if (check_bit(A-*address, 7) == 1) {
+        PS = set_bit(PS, NF);
+    }
 }
 
 void CPY(char *address) {
     CF = 0;
     ZF = 0;
     if (Y >= *address) {
-        CF = 1;
+        PS = set_bit(PS, CF);
     }
 
     if (Y == *address) {
-        ZF = 1;
+        PS = set_bit(PS, ZF);
     }
 
     NF = check_bit(Y-*address, 7);
@@ -323,7 +352,7 @@ void DEC(char *address) {
 
     ZF = 0;
     if (0 == *address) {
-        ZF = 1;
+        PS = set_bit(PS, ZF);
     }
     NF = check_bit(*address, 7);
 }
@@ -333,7 +362,7 @@ void DEX(char *address) {
 
     ZF = 0;
     if (0 == X) {
-        ZF = 1;
+        PS = set_bit(PS, ZF);
     }
     NF = check_bit(X, 7);
 }
@@ -343,7 +372,7 @@ void DEY(char *address) {
 
     ZF = 0;
     if (0 == Y) {
-        ZF = 1;
+        PS = set_bit(PS, ZF);
     }
     NF = check_bit(Y, 7);
 }
@@ -353,7 +382,7 @@ void EOR(char *address) {
 
     ZF = 0;
     if (0 == A) {
-        ZF = 1;
+        PS = set_bit(PS, ZF);
     }
     NF = check_bit(A, 7);
 }
@@ -363,7 +392,7 @@ void INC(char *address) {
 
     ZF = 0;
     if (0 == *address) {
-        ZF = 1;
+        PS = set_bit(PS, ZF);
     }
     NF = check_bit(*address, 7);
 }
@@ -373,7 +402,7 @@ void INX(char *address) {
 
     ZF = 0;
     if (0 == X) {
-        ZF = 1;
+        PS = set_bit(PS, ZF);
     }
     NF = check_bit(X, 7);
 }
@@ -383,7 +412,7 @@ void INY(char *address) {
 
     ZF = 0;
     if (0 == Y) {
-        ZF = 1;
+        PS = set_bit(PS, ZF);
     }
     NF = check_bit(Y, 7);
 }
