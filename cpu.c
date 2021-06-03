@@ -52,6 +52,17 @@ char extra_value = 0;
 
 extern struct addressing_data addressing[0xFF];
 
+void stack_push(char value) {
+    RAM[SP + 0x100] = value;
+    SP--;
+}
+
+char stack_pop() {
+    char value = RAM[SP + 0x100];
+    SP++;
+    return value;
+}
+
 char *get_pointer_to_ram(int16_t opcode, int16_t first, int16_t second) {
     switch (addressing[opcode].addr_mode) {
         case ACCUMULATOR:
@@ -381,3 +392,6 @@ void JMP(char *address) {
     PC = *address;
 }
 
+void JSR(char *address) {
+
+}
