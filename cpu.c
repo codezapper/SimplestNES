@@ -486,3 +486,59 @@ void LDY(char *address) {
     }
     PC += 1;
 }
+
+void LSR(char *address) {
+    PS = clear_bit(PS, CF);
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+
+    if (check_bit(*address, 0) == 1) {
+        PS = set_bit(PS, CF);
+    }
+
+    *address <<= 1;
+    *address &= 0x00FF;
+
+    if (0 == *address) {
+        PS = set_bit(PS, ZF);
+    }
+    if (check_bit(*address, 7)) {
+        PS = set_bit(PS, NF);
+    }
+
+    PC += 1;
+}
+
+void NOP(char *address) {
+    PC += 1;
+}
+
+void ORA(char *address) {
+    A |= *address;
+
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+    if (0 == A) {
+        PS = set_bit(PS, ZF);
+    }
+
+    if (check_bit(Y-*address, 7) == 1) {
+        PS = set_bit(PS, NF);
+    }
+}
+
+void PHA(char *address) {
+    stack_push(A);
+}
+
+void PHP(char *address) {
+    stack_push(PS);
+}
+
+void PLA(char *address) {
+    A = stack_pop();
+}
+
+void PLP(char *address) {
+    PS = stack_pop();
+}
