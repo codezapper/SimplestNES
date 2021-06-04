@@ -41,12 +41,12 @@ int8_t Y = 0;
 int8_t PS = 0;
 
 int8_t CF = 0;
-int8_t ZF = 0;
-int8_t ID = 0;
-int8_t DM = 0;
-int8_t BC = 0;
-int8_t OF = 0;
-int8_t NF = 0;
+int8_t ZF = 1;
+int8_t ID = 2;
+int8_t DM = 3;
+int8_t BC = 4;
+int8_t OF = 5;
+int8_t NF = 6;
 
 int cycles_cnt = 0;
 char extra_value = 0;
@@ -228,7 +228,7 @@ void BIT(char *address) {
     }
 
     if (check_bit(*address, 6)) {
-        OF = 1;
+        PS = set_bit(PS, OF);
     }
 }
 
@@ -257,12 +257,11 @@ void BPL(char *address) {
 }
 
 void BRK(char *address) {
-    // TODO: Implement pushing to stack
-    // - the program counter and processor status are pushed on the stack
-    // - the IRQ interrupt vector at $FFFE/F is loaded into the PC
-    // - the break flag in the status is set to one
-
-    BC = 1;
+    stack_push(PC >> 8);
+    stack_push(PC);
+    stack_push(PS);
+    PC = (RAM[0xFFFF] << 8) | RAM[0xFFFE];
+    PS = set_bit(PS, BC);
 }
 
 void BVC(char *address) {
@@ -334,8 +333,9 @@ void CPX(char *address) {
 }
 
 void CPY(char *address) {
-    CF = 0;
-    ZF = 0;
+    PS = clear_bit(PS, CF);
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
     if (Y >= *address) {
         PS = set_bit(PS, CF);
     }
@@ -344,77 +344,107 @@ void CPY(char *address) {
         PS = set_bit(PS, ZF);
     }
 
-    NF = check_bit(Y-*address, 7);
+    if (check_bit(Y-*address, 7) == 1) {
+        PS = set_bit(PS, NF);
+    }
 }
 
 void DEC(char *address) {
     *address -= 1;
 
-    ZF = 0;
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
     if (0 == *address) {
         PS = set_bit(PS, ZF);
     }
-    NF = check_bit(*address, 7);
+
+    if (check_bit(Y-*address, 7) == 1) {
+        PS = set_bit(PS, NF);
+    }
 }
 
 void DEX(char *address) {
     X -= 1;
 
-    ZF = 0;
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
     if (0 == X) {
         PS = set_bit(PS, ZF);
     }
-    NF = check_bit(X, 7);
+
+    if (check_bit(Y-*address, 7) == 1) {
+        PS = set_bit(PS, NF);
+    }
 }
 
 void DEY(char *address) {
     Y -= 1;
 
-    ZF = 0;
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
     if (0 == Y) {
         PS = set_bit(PS, ZF);
     }
-    NF = check_bit(Y, 7);
+
+    if (check_bit(Y-*address, 7) == 1) {
+        PS = set_bit(PS, NF);
+    }
 }
 
 void EOR(char *address) {
     A ^= *address;
 
-    ZF = 0;
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
     if (0 == A) {
         PS = set_bit(PS, ZF);
     }
-    NF = check_bit(A, 7);
+
+    if (check_bit(Y-*address, 7) == 1) {
+        PS = set_bit(PS, NF);
+    }
 }
 
 void INC(char *address) {
     *address += 1;
 
-    ZF = 0;
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
     if (0 == *address) {
         PS = set_bit(PS, ZF);
     }
-    NF = check_bit(*address, 7);
+
+    if (check_bit(Y-*address, 7) == 1) {
+        PS = set_bit(PS, NF);
+    }
 }
 
 void INX(char *address) {
     X += 1;
 
-    ZF = 0;
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
     if (0 == X) {
         PS = set_bit(PS, ZF);
     }
-    NF = check_bit(X, 7);
+
+    if (check_bit(Y-*address, 7) == 1) {
+        PS = set_bit(PS, NF);
+    }
 }
 
 void INY(char *address) {
     Y += 1;
 
-    ZF = 0;
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
     if (0 == Y) {
         PS = set_bit(PS, ZF);
     }
-    NF = check_bit(Y, 7);
+
+    if (check_bit(Y-*address, 7) == 1) {
+        PS = set_bit(PS, NF);
+    }
 }
 
 void JMP(char *address) {
