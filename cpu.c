@@ -116,20 +116,6 @@ void init_ram()
     memset(RAM, 0, sizeof(RAM));
 }
 
-void LDA(char *address) {
-    PS = clear_bit(PS, ZF);
-    PS = clear_bit(PS, NF);
-
-    A = *address;
-    if (0 == A) {
-        PS = set_bit(PS, ZF);
-    }
-    if (check_bit(A, 7)) {
-        PS = set_bit(PS, NF);
-    }
-    PC += 1;
-}
-
 void ADC(char *address) {
     int result = A + *address + CF;
     PS = clear_bit(PS, CF);
@@ -452,5 +438,51 @@ void JMP(char *address) {
 }
 
 void JSR(char *address) {
+    int return_point = PC + 2;
+    stack_push(return_point >> 8);
+    stack_push(return_point & 0x00FF);
 
+    PC = *address;
+}
+
+void LDA(char *address) {
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+
+    A = *address;
+    if (0 == A) {
+        PS = set_bit(PS, ZF);
+    }
+    if (check_bit(A, 7)) {
+        PS = set_bit(PS, NF);
+    }
+    PC += 1;
+}
+
+void LDX(char *address) {
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+
+    X = *address;
+    if (0 == X) {
+        PS = set_bit(PS, ZF);
+    }
+    if (check_bit(X, 7)) {
+        PS = set_bit(PS, NF);
+    }
+    PC += 1;
+}
+
+void LDY(char *address) {
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+
+    Y = *address;
+    if (0 == Y) {
+        PS = set_bit(PS, ZF);
+    }
+    if (check_bit(Y, 7)) {
+        PS = set_bit(PS, NF);
+    }
+    PC += 1;
 }

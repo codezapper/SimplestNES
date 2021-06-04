@@ -1,6 +1,5 @@
 void init_ram();
 char *get_pointer_to_ram(int16_t opcode, int16_t first, int16_t second);
-void LDA(char *address);
 void ADC(char *address);
 void AND(char *address);
 void ASL(char *address);
@@ -29,3 +28,7 @@ void INC(char *address);
 void INX(char *address);
 void INY(char *address);
 void JMP(char *address);
+void JSR(char *address);
+void LDA(char *address);
+void LDX(char *address);
+void LDY(char *address);
