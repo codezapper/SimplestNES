@@ -21,14 +21,14 @@ struct addressing_data addressing[(0xFF) + 1] = {
     // 100
     {0, 0, 0}, {&ADC, ZEROPAGE, 3}, {&ROR, ZEROPAGE, 5}, {0, 0, 0}, {&PLA, IMPLICIT, 4}, {&ADC, IMMEDIATE, 2}, {&ROR, ACCUMULATOR, 2}, {0, 0, 0}, {&JMP, INDIRECT, 5}, {&ADC, ABSOLUTE, 4},
     {&ROR, ABSOLUTE, 6}, {0, 0, 0}, {&BVS, RELATIVE, 2}, {&ADC, INDIRECTY, -5}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {&ADC, ZEROPAGEX, 4}, {&ROR, ZEROPAGEX, 6}, {0, 0, 0},
-    {&SEI, IMPLICIT, 2}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {&ADC, ABSOLUTEX, -4}, {&ROR, ABSOLUTEX, 7}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0},
-    {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {&DEY, IMPLICIT, 2}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0},
-    {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {&BCC, RELATIVE, 2}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0},
+    {&SEI, IMPLICIT, 2}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {&ADC, ABSOLUTEX, -4}, {&ROR, ABSOLUTEX, 7}, {0, 0, 0}, {0, 0, 0}, {&STA, INDIRECTX, 6},
+    {0, 0, 0}, {0, 0, 0}, {&STY, ZEROPAGE, 3}, {&STA, ZEROPAGE, 3}, {&STX, ZEROPAGE, 3}, {0, 0, 0}, {&DEY, IMPLICIT, 2}, {0, 0, 0}, {&TXA, IMPLICIT, 2}, {0, 0, 0},
+    {&STY, ABSOLUTE, 4}, {&STA, ABSOLUTE, 4}, {&STX, ABSOLUTE, 4}, {0, 0, 0}, {&BCC, RELATIVE, 2}, {&STA, INDIRECTY, 6}, {0, 0, 0}, {0, 0, 0}, {&STY, ZEROPAGEX, 4}, {&STA, ZEROPAGEX, 4},
     // 150
-    {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0},
-    {&LDY, IMMEDIATE, 2}, {&LDA, INDIRECTX, 6}, {&LDX, IMMEDIATE, 2}, {0, 0, 0}, {&LDY, ZEROPAGE, 3}, {&LDA, ZEROPAGE, 3}, {&LDX, ZEROPAGE, 3}, {0, 0, 0}, {0, 0, 0}, {&LDA, IMMEDIATE, 2},
-    {0, 0, 0}, {&ADC, ABSOLUTEY, -4}, {&LDY, ABSOLUTE, 4}, {&LDA, ABSOLUTE, 4}, {&LDX, ABSOLUTE, 4}, {0, 0, 0}, {&BCS, RELATIVE, 2}, {&LDA, INDIRECTY, -5}, {0, 0, 0}, {0, 0, 0},
-    {&LDY, ZEROPAGEX, 4}, {&LDA, ZEROPAGEX, 4}, {&LDX, ZEROPAGEY, 4}, {0, 0, 0}, {&CLV, IMPLICIT, 2}, {&LDA, ABSOLUTEY, -4}, {0, 0, 0}, {0, 0, 0}, {&LDY, ABSOLUTEX, -4}, {&LDA, ABSOLUTEX, -4},
+    {&STX, ZEROPAGEY, 4}, {0, 0, 0}, {&TYA, IMPLICIT, 2}, {&STA, ABSOLUTEY, 5}, {&TXS, IMPLICIT, 2}, {0, 0, 0}, {0, 0, 0}, {&STA, ABSOLUTEX, 5}, {0, 0, 0}, {0, 0, 0},
+    {&LDY, IMMEDIATE, 2}, {&LDA, INDIRECTX, 6}, {&LDX, IMMEDIATE, 2}, {0, 0, 0}, {&LDY, ZEROPAGE, 3}, {&LDA, ZEROPAGE, 3}, {&LDX, ZEROPAGE, 3}, {0, 0, 0}, {&TAY, IMPLICIT, 2}, {&LDA, IMMEDIATE, 2},
+    {&TAX, IMPLICIT, 2}, {&ADC, ABSOLUTEY, -4}, {&LDY, ABSOLUTE, 4}, {&LDA, ABSOLUTE, 4}, {&LDX, ABSOLUTE, 4}, {0, 0, 0}, {&BCS, RELATIVE, 2}, {&LDA, INDIRECTY, -5}, {0, 0, 0}, {0, 0, 0},
+    {&LDY, ZEROPAGEX, 4}, {&LDA, ZEROPAGEX, 4}, {&LDX, ZEROPAGEY, 4}, {0, 0, 0}, {&CLV, IMPLICIT, 2}, {&LDA, ABSOLUTEY, -4}, {&TSX, IMPLICIT, 2}, {0, 0, 0}, {&LDY, ABSOLUTEX, -4}, {&LDA, ABSOLUTEX, -4},
     {&LDX, ABSOLUTEY, -4}, {0, 0, 0}, {&CPY, IMMEDIATE, 2}, {&CMP, INDIRECTX, 6}, {0, 0, 0}, {0, 0, 0}, {&CPY, ZEROPAGE, 3}, {&CMP, ZEROPAGE, 3}, {&DEC, ZEROPAGE, 5}, {0, 0, 0},
     // 200
     {&INY, IMPLICIT, 2}, {&CMP, IMMEDIATE, 2}, {&DEX, IMPLICIT, 2}, {0, 0, 0}, {&CPY, ABSOLUTE, 4}, {&CMP, ABSOLUTE, 4}, {&DEC, ABSOLUTE, 6}, {0, 0, 0}, {&BNE, RELATIVE, 2}, {&CMP, INDIRECTY, -5},
