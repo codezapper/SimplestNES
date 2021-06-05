@@ -39,3 +39,7 @@ void PHA(char *address);
 void PHP(char *address);
 void PLA(char *address);
 void PLP(char *address);
+void ROL(char *address);
+void ROR(char *address);
+void RTI(char *address);
+void RTS(char *address);

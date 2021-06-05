@@ -542,3 +542,74 @@ void PLA(char *address) {
 void PLP(char *address) {
     PS = stack_pop();
 }
+
+void ROL(char *address) {
+    int value = *address;
+    if (check_bit(PS, CF) == 1) {
+        value = set_bit(value, 0);
+    } else {
+        value = clear_bit(value, 0);
+    }
+
+    if (check_bit(value, 7) == 1) {
+        PS = set_bit(PS, CF);
+    } else {
+        PS = clear_bit(PS, CF);
+    }
+
+    value <<= 1;
+
+    if (check_bit(value, 7) == 1) {
+        PS = set_bit(PS, NF);
+    } else {
+        PS = clear_bit(PS, NF);
+    }
+
+    if (0 == value) {
+        PS = set_bit(PS, ZF);
+    } else {
+        PS = set_bit(PS, ZF);
+    }
+
+    *address = value;
+}
+
+
+void ROR(char *address) {
+    int value = *address;
+    if (check_bit(PS, CF) == 1) {
+        value = set_bit(value, 7);
+    } else {
+        value = clear_bit(value, 7);
+    }
+
+    if (check_bit(value, 0) == 1) {
+        PS = set_bit(PS, CF);
+    } else {
+        PS = clear_bit(PS, CF);
+    }
+
+    value <<= 1;
+
+    if (check_bit(value, 7) == 1) {
+        PS = set_bit(PS, NF);
+    } else {
+        PS = clear_bit(PS, NF);
+    }
+
+    if (0 == value) {
+        PS = set_bit(PS, ZF);
+    } else {
+        PS = set_bit(PS, ZF);
+    }
+
+    *address = value;
+}
+
+void RTI(char *address) {
+    PS = stack_pop();
+}
+
+void RTS(char *address) {
+    PC = stack_pop();
+}
