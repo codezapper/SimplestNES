@@ -613,3 +613,116 @@ void RTI(char *address) {
 void RTS(char *address) {
     PC = stack_pop();
 }
+
+void SBC(char *address) {
+    int result = A - *address;
+
+    if (check_bit(PS, CF) == 0) {
+        result -= 1;
+    }
+
+    PS = clear_bit(PS, CF);
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+    PS = clear_bit(PS, OF);
+
+    if (result > 256) {
+        PS = set_bit(PS, CF);
+    }
+    A = result;
+    if (0 == A) {
+        PS = set_bit(PS, ZF);
+    }
+    if (check_bit(A, 7)) {
+        PS = set_bit(PS, NF);
+    }
+
+    if ((127 < A) || (-128 > A)) {
+        PS = set_bit(PS, OF);
+    }
+    PC += 1;
+}
+
+void SEC(char *address) {
+    PS = set_bit(PS, CF);
+}
+
+void SED(char *address) {
+    PS = set_bit(PS, DM);
+}
+
+void SEI(char *address) {
+    PS = set_bit(PS, ID);
+}
+
+void STA(char *address) {
+    *address = A;
+}
+
+void STX(char *address) {
+    *address = X;
+}
+
+void STY(char *address) {
+    *address = Y;
+}
+
+void TAX(char *address) {
+    X = A;
+
+    if (0 == X) {
+        PS = set_bit(PS, ZF);
+    }
+    if (check_bit(X, 7)) {
+        PS = set_bit(PS, NF);
+    }
+}
+
+void TAY(char *address) {
+    Y = A;
+
+    if (0 == Y) {
+        PS = set_bit(PS, ZF);
+    }
+    if (check_bit(Y, 7)) {
+        PS = set_bit(PS, NF);
+    }
+}
+
+void TSX(char *address) {
+    X = SP;
+
+    if (0 == X) {
+        PS = set_bit(PS, ZF);
+    }
+    if (check_bit(X, 7)) {
+        PS = set_bit(PS, NF);
+    }
+}
+
+void TXA(char *address) {
+    A = X;
+
+    if (0 == A) {
+        PS = set_bit(PS, ZF);
+    }
+    if (check_bit(A, 7)) {
+        PS = set_bit(PS, NF);
+    }
+}
+
+void TXS(char *address) {
+    SP = 0;
+}
+
+void TYA(char *address) {
+    A = Y;
+
+    if (0 == A) {
+        PS = set_bit(PS, ZF);
+    }
+    if (check_bit(A, 7)) {
+        PS = set_bit(PS, NF);
+    }
+}
+
