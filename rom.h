@@ -1,3 +1,6 @@
+#define TRAINER_START 0x7000
+#define TRAINER_END 0x71FF
+
 struct HEADER {
     char nes[4];
     char prg_size;
@@ -13,10 +16,10 @@ struct HEADER {
 struct ROM {
     struct HEADER header;
     char trainer[512];
-    char prg_data[16384 * 10];
+    char prg_data[16384 * 4];
     char chr_data[8192 * 10];
     char instrom[8192];
     char prom[32];
 };
 
-char *load_rom(char *filename);
+void load_rom(char *filename);

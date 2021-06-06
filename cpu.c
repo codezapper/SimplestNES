@@ -30,7 +30,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "addressing_modes.h"
+#include "utils.h"
 
 char RAM[0xFFFF];
 int16_t PC = 0;
@@ -93,23 +95,6 @@ char *get_pointer_to_ram(int16_t opcode, int16_t first, int16_t second) {
             return 0;
     }
 }
-
-short check_bit(int number, int bit) {
-    if (number & (1 << bit)) {
-        return 1;
-    }
-
-    return 0;
-}
-
-char set_bit(char value, int bit) {
-    return value | (1 << bit);
-}
-
-char clear_bit(char value, int bit) {
-    return value | (1 << bit);
-}
-
 
 void init_ram()
 {

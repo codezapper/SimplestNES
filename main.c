@@ -21,5 +21,10 @@ void main(int argc, char **argv) {
     // printf("%d\n", A);
 
     load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_reads.nes");
-    printf("%s %d %d %d %d %d %d %d\n", rom.header.nes, rom.header.prg_size, rom.header.chr_size, rom.header.flags_6, rom.header.flags_7, rom.header.flags_8, rom.header.flags_9, rom.header.flags_10, rom.header.padding[5]);
+    printf("%d\n", rom.header.prg_size);
+    // printf("%s %d %d %d %d %d %d %d\n", rom.header.nes, rom.header.prg_size, rom.header.chr_size, rom.header.flags_6, rom.header.flags_7, rom.header.flags_8, rom.header.flags_9, rom.header.flags_10, rom.header.padding[5]);
+
+    for (int i = 0; i < sizeof(rom.prg_data); i++) {
+        printf("%02d\n", RAM[0x800 + i] & 0xFF);
+    }
 }
