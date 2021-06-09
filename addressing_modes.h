@@ -17,6 +17,7 @@
 
 struct addressing_data {
     void *opcode_fun;
+    char name[3];
     int addr_mode;
     int cycles;
 };

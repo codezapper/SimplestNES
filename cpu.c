@@ -34,21 +34,22 @@
 #include "addressing_modes.h"
 #include "utils.h"
 
-char RAM[0xFFFF];
-int16_t PC = 0;
-int8_t SP = 0;
-int8_t A = 0;
-int8_t X = 0;
-int8_t Y = 0;
-int8_t PS = 0;
+unsigned char RAM[0xFFFF];
 
-int8_t CF = 0;
-int8_t ZF = 1;
-int8_t ID = 2;
-int8_t DM = 3;
-int8_t BC = 4;
-int8_t OF = 5;
-int8_t NF = 6;
+int16_t PC = 0;
+unsigned char SP = 0;
+unsigned char A = 0;
+unsigned char X = 0;
+unsigned char Y = 0;
+unsigned char PS = 0;
+
+unsigned char CF = 0;
+unsigned char ZF = 1;
+unsigned char ID = 2;
+unsigned char DM = 3;
+unsigned char BC = 4;
+unsigned char OF = 5;
+unsigned char NF = 6;
 
 int cycles_cnt = 0;
 char extra_value = 0;
@@ -66,7 +67,7 @@ char stack_pop() {
     return value;
 }
 
-char *get_pointer_to_ram(int16_t opcode, int16_t first, int16_t second) {
+char *get_pointer_to_ram(char opcode, char first, char second) {
     switch (addressing[opcode].addr_mode) {
         case ACCUMULATOR:
             return &A;
@@ -122,7 +123,6 @@ void ADC(char *address) {
     if ((127 < A) || (-128 > A)) {
         PS = set_bit(PS, OF);
     }
-    PC += 1;
 }
 
 void AND(char *address) {
@@ -441,7 +441,6 @@ void LDA(char *address) {
     if (check_bit(A, 7)) {
         PS = set_bit(PS, NF);
     }
-    PC += 1;
 }
 
 void LDX(char *address) {
@@ -455,7 +454,6 @@ void LDX(char *address) {
     if (check_bit(X, 7)) {
         PS = set_bit(PS, NF);
     }
-    PC += 1;
 }
 
 void LDY(char *address) {
@@ -469,7 +467,6 @@ void LDY(char *address) {
     if (check_bit(Y, 7)) {
         PS = set_bit(PS, NF);
     }
-    PC += 1;
 }
 
 void LSR(char *address) {
@@ -491,11 +488,9 @@ void LSR(char *address) {
         PS = set_bit(PS, NF);
     }
 
-    PC += 1;
 }
 
 void NOP(char *address) {
-    PC += 1;
 }
 
 void ORA(char *address) {
@@ -625,7 +620,6 @@ void SBC(char *address) {
     if ((127 < A) || (-128 > A)) {
         PS = set_bit(PS, OF);
     }
-    PC += 1;
 }
 
 void SEC(char *address) {
