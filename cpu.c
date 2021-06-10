@@ -37,7 +37,7 @@
 unsigned char RAM[0xFFFF];
 
 int16_t PC = 0;
-unsigned char SP = 0;
+int16_t SP = 0x100;
 unsigned char A = 0;
 unsigned char X = 0;
 unsigned char Y = 0;
@@ -52,22 +52,22 @@ unsigned char OF = 5;
 unsigned char NF = 6;
 
 int cycles_cnt = 0;
-char extra_value = 0;
+unsigned char extra_value = 0;
 
 extern struct addressing_data addressing[0xFF];
 
-void stack_push(char value) {
+void stack_push(unsigned char value) {
     RAM[SP + 0x100] = value;
-    SP--;
+    SP++;
 }
 
-char stack_pop() {
-    char value = RAM[SP + 0x100];
-    SP++;
+unsigned char stack_pop() {
+    unsigned char value = RAM[SP + 0x100];
+    SP--;
     return value;
 }
 
-char *get_pointer_to_ram(char opcode, char first, char second) {
+unsigned char *get_pointer_to_ram(unsigned char opcode, unsigned char first, unsigned char second) {
     switch (addressing[opcode].addr_mode) {
         case ACCUMULATOR:
             return &A;
@@ -102,7 +102,7 @@ void init_ram()
     memset(RAM, 0, sizeof(RAM));
 }
 
-void ADC(char *address) {
+void ADC(unsigned char *address) {
     int result = A + *address + CF;
     PS = clear_bit(PS, CF);
     PS = clear_bit(PS, ZF);
@@ -125,7 +125,7 @@ void ADC(char *address) {
     }
 }
 
-void AND(char *address) {
+void AND(unsigned char *address) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
@@ -138,7 +138,7 @@ void AND(char *address) {
     }
 }
 
-void ASL(char *address) {
+void ASL(unsigned char *address) {
     *address <<= 1;
 
     PS = clear_bit(PS, ZF);
@@ -159,7 +159,7 @@ void ASL(char *address) {
     }
 }
 
-void BCC(char *address) {
+void BCC(unsigned char *address) {
     addressing[0x90].cycles = 2;
     if (check_bit(PS, CF) == 0) {
         PC += *address;
@@ -167,7 +167,7 @@ void BCC(char *address) {
     }
 }
 
-void BCS(char *address) {
+void BCS(unsigned char *address) {
     addressing[0xB0].cycles = 2;
     if (check_bit(PS, CF) == 1) {
         PC += *address;
@@ -175,7 +175,7 @@ void BCS(char *address) {
     }
 }
 
-void BEQ(char *address) {
+void BEQ(unsigned char *address) {
     addressing[0xF0].cycles = 2;
     if (check_bit(PS, ZF) == 1) {
         PC += *address;
@@ -183,7 +183,7 @@ void BEQ(char *address) {
     }
 }
 
-void BIT(char *address) {
+void BIT(unsigned char *address) {
     int result = A & *address;
 
     PS = clear_bit(PS, ZF);
@@ -203,7 +203,7 @@ void BIT(char *address) {
     }
 }
 
-void BMI(char *address) {
+void BMI(unsigned char *address) {
     addressing[0xF0].cycles = 2;
     if (NF == 1) {
         PC += *address;
@@ -211,7 +211,7 @@ void BMI(char *address) {
     }
 }
 
-void BNE(char *address) {
+void BNE(unsigned char *address) {
     addressing[0xD0].cycles = 2;
     if (check_bit(PS, ZF) == 0) {
         PC += *address;
@@ -219,7 +219,7 @@ void BNE(char *address) {
     }
 }
 
-void BPL(char *address) {
+void BPL(unsigned char *address) {
     addressing[0x10].cycles = 2;
     if (check_bit(PS, NF) == 0) {
         PC += *address;
@@ -227,7 +227,7 @@ void BPL(char *address) {
     }
 }
 
-void BRK(char *address) {
+void BRK(unsigned char *address) {
     stack_push(PC >> 8);
     stack_push(PC);
     stack_push(PS);
@@ -235,7 +235,7 @@ void BRK(char *address) {
     PS = set_bit(PS, BC);
 }
 
-void BVC(char *address) {
+void BVC(unsigned char *address) {
     addressing[0x50].cycles = 2;
     if (check_bit(PS, OF) == 0) {
         PC += *address;
@@ -243,7 +243,7 @@ void BVC(char *address) {
     }
 }
 
-void BVS(char *address) {
+void BVS(unsigned char *address) {
     addressing[0x70].cycles = 2;
     if (check_bit(PS, OF) == 0) {
         PC += *address;
@@ -251,23 +251,23 @@ void BVS(char *address) {
     }
 }
 
-void CLC(char *address) {
+void CLC(unsigned char *address) {
     PS = clear_bit(PS, CF);
 }
 
-void CLD(char *address) {
+void CLD(unsigned char *address) {
     PS = clear_bit(PS, DM);
 }
 
-void CLI(char *address) {
+void CLI(unsigned char *address) {
     PS = clear_bit(PS, ID);
 }
 
-void CLV(char *address) {
+void CLV(unsigned char *address) {
     PS = clear_bit(PS, OF);
 }
 
-void CMP(char *address) {
+void CMP(unsigned char *address) {
     PS = clear_bit(PS, CF);
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -285,7 +285,7 @@ void CMP(char *address) {
     }
 }
 
-void CPX(char *address) {
+void CPX(unsigned char *address) {
     PS = clear_bit(PS, CF);
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -303,7 +303,7 @@ void CPX(char *address) {
     }
 }
 
-void CPY(char *address) {
+void CPY(unsigned char *address) {
     PS = clear_bit(PS, CF);
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -320,7 +320,7 @@ void CPY(char *address) {
     }
 }
 
-void DEC(char *address) {
+void DEC(unsigned char *address) {
     *address -= 1;
 
     PS = clear_bit(PS, ZF);
@@ -334,7 +334,7 @@ void DEC(char *address) {
     }
 }
 
-void DEX(char *address) {
+void DEX(unsigned char *address) {
     X -= 1;
 
     PS = clear_bit(PS, ZF);
@@ -348,7 +348,7 @@ void DEX(char *address) {
     }
 }
 
-void DEY(char *address) {
+void DEY(unsigned char *address) {
     Y -= 1;
 
     PS = clear_bit(PS, ZF);
@@ -362,7 +362,7 @@ void DEY(char *address) {
     }
 }
 
-void EOR(char *address) {
+void EOR(unsigned char *address) {
     A ^= *address;
 
     PS = clear_bit(PS, ZF);
@@ -376,7 +376,7 @@ void EOR(char *address) {
     }
 }
 
-void INC(char *address) {
+void INC(unsigned char *address) {
     *address += 1;
 
     PS = clear_bit(PS, ZF);
@@ -390,7 +390,7 @@ void INC(char *address) {
     }
 }
 
-void INX(char *address) {
+void INX(unsigned char *address) {
     X += 1;
 
     PS = clear_bit(PS, ZF);
@@ -404,7 +404,7 @@ void INX(char *address) {
     }
 }
 
-void INY(char *address) {
+void INY(unsigned char *address) {
     Y += 1;
 
     PS = clear_bit(PS, ZF);
@@ -418,11 +418,11 @@ void INY(char *address) {
     }
 }
 
-void JMP(char *address) {
+void JMP(unsigned char *address) {
     PC = *address;
 }
 
-void JSR(char *address) {
+void JSR(unsigned char *address) {
     int return_point = PC + 2;
     stack_push(return_point >> 8);
     stack_push(return_point & 0x00FF);
@@ -430,7 +430,7 @@ void JSR(char *address) {
     PC = *address;
 }
 
-void LDA(char *address) {
+void LDA(unsigned char *address) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
@@ -443,7 +443,7 @@ void LDA(char *address) {
     }
 }
 
-void LDX(char *address) {
+void LDX(unsigned char *address) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
@@ -456,7 +456,7 @@ void LDX(char *address) {
     }
 }
 
-void LDY(char *address) {
+void LDY(unsigned char *address) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
@@ -469,7 +469,7 @@ void LDY(char *address) {
     }
 }
 
-void LSR(char *address) {
+void LSR(unsigned char *address) {
     PS = clear_bit(PS, CF);
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -490,10 +490,10 @@ void LSR(char *address) {
 
 }
 
-void NOP(char *address) {
+void NOP(unsigned char *address) {
 }
 
-void ORA(char *address) {
+void ORA(unsigned char *address) {
     A |= *address;
 
     PS = clear_bit(PS, ZF);
@@ -507,23 +507,23 @@ void ORA(char *address) {
     }
 }
 
-void PHA(char *address) {
+void PHA(unsigned char *address) {
     stack_push(A);
 }
 
-void PHP(char *address) {
+void PHP(unsigned char *address) {
     stack_push(PS);
 }
 
-void PLA(char *address) {
+void PLA(unsigned char *address) {
     A = stack_pop();
 }
 
-void PLP(char *address) {
+void PLP(unsigned char *address) {
     PS = stack_pop();
 }
 
-void ROL(char *address) {
+void ROL(unsigned char *address) {
     int value = *address;
     if (check_bit(PS, CF) == 1) {
         value = set_bit(value, 0);
@@ -555,7 +555,7 @@ void ROL(char *address) {
 }
 
 
-void ROR(char *address) {
+void ROR(unsigned char *address) {
     int value = *address;
     if (check_bit(PS, CF) == 1) {
         value = set_bit(value, 7);
@@ -586,15 +586,15 @@ void ROR(char *address) {
     *address = value;
 }
 
-void RTI(char *address) {
+void RTI(unsigned char *address) {
     PS = stack_pop();
 }
 
-void RTS(char *address) {
+void RTS(unsigned char *address) {
     PC = stack_pop();
 }
 
-void SBC(char *address) {
+void SBC(unsigned char *address) {
     int result = A - *address;
 
     if (check_bit(PS, CF) == 0) {
@@ -622,31 +622,31 @@ void SBC(char *address) {
     }
 }
 
-void SEC(char *address) {
+void SEC(unsigned char *address) {
     PS = set_bit(PS, CF);
 }
 
-void SED(char *address) {
+void SED(unsigned char *address) {
     PS = set_bit(PS, DM);
 }
 
-void SEI(char *address) {
+void SEI(unsigned char *address) {
     PS = set_bit(PS, ID);
 }
 
-void STA(char *address) {
+void STA(unsigned char *address) {
     *address = A;
 }
 
-void STX(char *address) {
+void STX(unsigned char *address) {
     *address = X;
 }
 
-void STY(char *address) {
+void STY(unsigned char *address) {
     *address = Y;
 }
 
-void TAX(char *address) {
+void TAX(unsigned char *address) {
     X = A;
 
     if (0 == X) {
@@ -657,7 +657,7 @@ void TAX(char *address) {
     }
 }
 
-void TAY(char *address) {
+void TAY(unsigned char *address) {
     Y = A;
 
     if (0 == Y) {
@@ -668,7 +668,7 @@ void TAY(char *address) {
     }
 }
 
-void TSX(char *address) {
+void TSX(unsigned char *address) {
     X = SP;
 
     if (0 == X) {
@@ -679,7 +679,7 @@ void TSX(char *address) {
     }
 }
 
-void TXA(char *address) {
+void TXA(unsigned char *address) {
     A = X;
 
     if (0 == A) {
@@ -690,11 +690,11 @@ void TXA(char *address) {
     }
 }
 
-void TXS(char *address) {
+void TXS(unsigned char *address) {
     SP = 0;
 }
 
-void TYA(char *address) {
+void TYA(unsigned char *address) {
     A = Y;
 
     if (0 == A) {

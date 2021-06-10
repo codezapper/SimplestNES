@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include "addressing.h"
 #include "rom.h"
 
@@ -45,14 +46,33 @@ void main(int argc, char **argv) {
         printf("%x, %x %x %x %s  A:%x X:%x Y:%x P:%x SP:%x CYCLE:%d\n",
         PC, opcode, first, second, addressing[opcode].name, A, X, Y, PS, SP, 0); 
 
-        void (*fun_ptr)(char *) = addressing[opcode].opcode_fun;
+        void (*fun_ptr)(unsigned char *) = addressing[opcode].opcode_fun;
         (*fun_ptr)(get_pointer_to_ram(opcode, first, second));
 
-        int am = addressing[opcode].addr_mode;
-        if ((ZEROPAGEX == am) || (ZEROPAGEY == am) || (ABSOLUTEX == am) || (ABSOLUTEY == am) || (INDIRECTX == am) || (INDIRECTY == am)) {
-            PC += 2;
-        } else if ((ZEROPAGE == am) || (ABSOLUTE == am) || (RELATIVE == am) || (INDIRECT == am)) {
-            PC += 1;
+        unsigned char *fn_name = addressing[opcode].name;
+
+        if ((strcmp(fn_name, "BCC") != 0) &&
+            (strcmp(fn_name, "BCS") != 0) &&
+            (strcmp(fn_name, "BEQ") != 0) &&
+            (strcmp(fn_name, "BMI") != 0) &&
+            (strcmp(fn_name, "BNE") != 0) &&
+            (strcmp(fn_name, "BPL") != 0) &&
+            (strcmp(fn_name, "BRK") != 0) &&
+            (strcmp(fn_name, "BVC") != 0) &&
+            (strcmp(fn_name, "BVS") != 0) &&
+            (strcmp(fn_name, "JMP") != 0) &&
+            (strcmp(fn_name, "JSR") != 0) &&
+            (strcmp(fn_name, "RTS") != 0)
+            ) {
+
+            PC++;
+
+            int am = addressing[opcode].addr_mode;
+            if ((ZEROPAGEX == am) || (ZEROPAGEY == am) || (ABSOLUTEX == am) || (ABSOLUTEY == am) || (INDIRECTX == am) || (INDIRECTY == am)) {
+                PC += 2;
+            } else if ((ZEROPAGE == am) || (ABSOLUTE == am) || (RELATIVE == am) || (INDIRECT == am)) {
+                PC += 1;
+            }
         }
     }
     
