@@ -36,8 +36,8 @@
 
 unsigned char RAM[0xFFFF];
 
-int16_t PC = 0;
-int16_t SP = 0x100;
+uint16_t PC = 0;
+uint16_t SP = 0x100;
 unsigned char A = 0;
 unsigned char X = 0;
 unsigned char Y = 0;

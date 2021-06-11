@@ -5,14 +5,14 @@
 #include "rom.h"
 
 extern unsigned char RAM[0xFFFF];
-extern int8_t A;
-extern int8_t X;
-extern int8_t Y;
-extern int8_t PS;
-extern int8_t SP;
+extern uint8_t A;
+extern uint8_t X;
+extern uint8_t Y;
+extern uint8_t PS;
+extern uint16_t SP;
 
 extern struct ROM rom;
-extern int16_t PC;
+extern uint16_t PC;
 
 void main(int argc, char **argv) {
     init_ram();
@@ -26,6 +26,7 @@ void main(int argc, char **argv) {
     // printf("%d\n", A);
 
     load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_writes/cpu_dummy_writes_oam.nes");
+    // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_reads.nes");
     printf("%d\n", rom.header.prg_size);
     // printf("%s %d %d %d %d %d %d %d\n", rom.header.nes, rom.header.prg_size, rom.header.chr_size, rom.header.flags_6, rom.header.flags_7, rom.header.flags_8, rom.header.flags_9, rom.header.flags_10, rom.header.padding[5]);
 
@@ -33,7 +34,7 @@ void main(int argc, char **argv) {
     unsigned char value = 0;
     unsigned char first;
     unsigned char second;
-    PC = 0xC00;
+    PC = 0x8000;
     while (PC > 0) {
         opcode = RAM[PC];
         if (addressing[opcode].cycles == 0) {
