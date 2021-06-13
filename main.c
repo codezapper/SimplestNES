@@ -25,58 +25,60 @@ void main(int argc, char **argv) {
     // (*fun_ptr)(get_pointer_to_ram(0xA9, 42, 20));
     // printf("%d\n", A);
 
-    load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_writes/cpu_dummy_writes_oam.nes");
+    // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_writes/cpu_dummy_writes_oam.nes");
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_reads.nes");
+    // load_rom("/home/gabriele/Downloads/bf.nes");
+    load_rom("/home/gabriele/Downloads/cpu_test/nestest.nes");
     printf("%d\n", rom.header.prg_size);
     // printf("%s %d %d %d %d %d %d %d\n", rom.header.nes, rom.header.prg_size, rom.header.chr_size, rom.header.flags_6, rom.header.flags_7, rom.header.flags_8, rom.header.flags_9, rom.header.flags_10, rom.header.padding[5]);
 
-    unsigned char opcode = 0;
-    unsigned char value = 0;
-    unsigned char first;
-    unsigned char second;
-    PC = 0x8000;
-    while (PC > 0) {
-        opcode = RAM[PC];
-        if (addressing[opcode].cycles == 0) {
-            PC++;
-            continue;
-        }
-        first = (RAM[PC + 1]);
-        second = (RAM[PC + 2]);
+    // unsigned char opcode = 0;
+    // unsigned char value = 0;
+    // unsigned char first;
+    // unsigned char second;
+    // PC = 0xC000;
+    // while (PC > 0) {
+    //     opcode = RAM[PC];
+    //     if (addressing[opcode].cycles == 0) {
+    //         PC++;
+    //         continue;
+    //     }
+    //     first = (RAM[PC + 1]);
+    //     second = (RAM[PC + 2]);
 
-        printf("%x, %x %x %x %s  A:%x X:%x Y:%x P:%x SP:%x CYCLE:%d\n",
-        PC, opcode, first, second, addressing[opcode].name, A, X, Y, PS, SP, 0); 
+    //     printf("%x, %x %x %x %s  A:%x X:%x Y:%x P:%x SP:%x CYCLE:%d\n",
+    //     PC, opcode, first, second, addressing[opcode].name, A, X, Y, PS, SP, 0); 
 
-        void (*fun_ptr)(unsigned char *) = addressing[opcode].opcode_fun;
-        (*fun_ptr)(get_pointer_to_ram(opcode, first, second));
+    //     void (*fun_ptr)(unsigned char *) = addressing[opcode].opcode_fun;
+    //     (*fun_ptr)(get_pointer_to_ram(opcode, first, second));
 
-        unsigned char *fn_name = addressing[opcode].name;
+    //     unsigned char *fn_name = addressing[opcode].name;
 
-        if ((strcmp(fn_name, "BCC") != 0) &&
-            (strcmp(fn_name, "BCS") != 0) &&
-            (strcmp(fn_name, "BEQ") != 0) &&
-            (strcmp(fn_name, "BMI") != 0) &&
-            (strcmp(fn_name, "BNE") != 0) &&
-            (strcmp(fn_name, "BPL") != 0) &&
-            (strcmp(fn_name, "BRK") != 0) &&
-            (strcmp(fn_name, "BVC") != 0) &&
-            (strcmp(fn_name, "BVS") != 0) &&
-            (strcmp(fn_name, "JMP") != 0) &&
-            (strcmp(fn_name, "JSR") != 0) &&
-            (strcmp(fn_name, "RTS") != 0)
-            ) {
+    //     if ((strcmp(fn_name, "BCC") != 0) &&
+    //         (strcmp(fn_name, "BCS") != 0) &&
+    //         (strcmp(fn_name, "BEQ") != 0) &&
+    //         (strcmp(fn_name, "BMI") != 0) &&
+    //         (strcmp(fn_name, "BNE") != 0) &&
+    //         (strcmp(fn_name, "BPL") != 0) &&
+    //         (strcmp(fn_name, "BRK") != 0) &&
+    //         (strcmp(fn_name, "BVC") != 0) &&
+    //         (strcmp(fn_name, "BVS") != 0) &&
+    //         (strcmp(fn_name, "JMP") != 0) &&
+    //         (strcmp(fn_name, "JSR") != 0) &&
+    //         (strcmp(fn_name, "RTS") != 0)
+    //         ) {
 
-            PC++;
+    //         PC++;
 
-            int am = addressing[opcode].addr_mode;
-            if ((ZEROPAGEX == am) || (ZEROPAGEY == am) || (ABSOLUTEX == am) || (ABSOLUTEY == am) || (INDIRECTX == am) || (INDIRECTY == am)) {
-                PC += 2;
-            } else if ((ZEROPAGE == am) || (ABSOLUTE == am) || (RELATIVE == am) || (INDIRECT == am)) {
-                PC += 1;
-            }
-        }
-    }
+    //         int am = addressing[opcode].addr_mode;
+    //         if ((ZEROPAGEX == am) || (ZEROPAGEY == am) || (ABSOLUTEX == am) || (ABSOLUTEY == am) || (INDIRECTX == am) || (INDIRECTY == am)) {
+    //             PC += 2;
+    //         } else if ((ZEROPAGE == am) || (ABSOLUTE == am) || (RELATIVE == am) || (INDIRECT == am)) {
+    //             PC += 1;
+    //         }
+    //     }
+    // }
     
-    printf("0x02: %02x\n", RAM[0x02]);
-    printf("0x03: %03x\n", RAM[0x03]);
+    // printf("0x02: %02x\n", RAM[0x02]);
+    // printf("0x03: %03x\n", RAM[0x03]);
 }
