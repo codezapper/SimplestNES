@@ -91,7 +91,7 @@ uint16_t read_value_from_params(unsigned char first, unsigned char second, unsig
         case ABSOLUTEX:
             return first + X;
         case ABSOLUTEY:
-            return first + X;
+            return first + Y;
         case INDIRECTX:
             return first + X;
         case INDIRECTY:
@@ -103,6 +103,42 @@ uint16_t read_value_from_params(unsigned char first, unsigned char second, unsig
 }
 
 void write_value_from_params(unsigned char first, unsigned char second, unsigned char value, unsigned char addr_mode) {
+    switch (addr_mode) {
+        // case ACCUMULATOR:
+        //     return A;
+        // case IMMEDIATE:
+        //     return first;
+        // case RELATIVE:
+        //     return RAM[first];
+        case ZEROPAGE:
+            RAM[first] = value;
+            break;
+        case ZEROPAGEX:
+            RAM[first] = (value + X) % 256;
+            break;
+        case ZEROPAGEY:
+            RAM[first] = value + Y;
+            break;
+        case ABSOLUTE:
+            int address = first;
+            address = (second << 8) |address;
+            RAM[address] = value;
+        case ABSOLUTEX:
+            RAM[first + X] = value;
+            break;
+        case ABSOLUTEY:
+            RAM[first + Y] = value;
+            break;
+        case INDIRECTX:
+            RAM[first + X] = value;
+            break;
+        case INDIRECTY:
+            RAM[first + Y] = value;
+            break;
+        case INDIRECT:
+            //TODO: Implemented indirect for JMP
+            break;
+    }
 }
 
 void init_ram()
