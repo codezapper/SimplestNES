@@ -3,8 +3,8 @@
 
 struct HEADER {
     unsigned char nes[4];
-    unsigned char prg_size;
-    unsigned char chr_size;
+    unsigned char prg_blocks;
+    unsigned char chr_blocks;
     unsigned char flags_6;
     unsigned char flags_7;
     unsigned char flags_8;
@@ -16,8 +16,8 @@ struct HEADER {
 struct ROM {
     struct HEADER header;
     unsigned char trainer[512];
-    unsigned char prg_data[16384 * 4];
-    unsigned char chr_data[8192 * 10];
+    unsigned char prg_rom[16384 * 4];
+    unsigned char chr_rom[8192 * 8];
     unsigned char instrom[8192];
     unsigned char prom[32];
 };

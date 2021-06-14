@@ -12,11 +12,11 @@ void load_rom(char *filename) {
     FILE *rom_file = fopen(filename, "rb");
 
  
-     if ( fseek( rom_file, 16, SEEK_SET ) ) {
-        int a = 0;
-     }
+    fread(&rom.header, 16, 1, rom_file);
 
-    // fread(&rom.header, 16, 1, rom_file);
+    unsigned char mapper1 = rom.header.flags_6 >> 4;
+    unsigned char mapper2 = rom.header.flags_7 >> 4;
+    unsigned char mapper = (mapper1 | mapper2) << 4;
 
     // int mirroring = check_bit(rom.header.flags_6, 0);
     // int battery_backed = check_bit(rom.header.flags_6, 1);
@@ -48,7 +48,7 @@ void load_rom(char *filename) {
     // flags 8-15 are in NES format
     //}
 
-    unsigned char rom[32 *1024L];
+    unsigned char prg_rom[32 *1024L];
 
     // if (1 == trainer) {
         // TODO: implement trainer
@@ -56,18 +56,10 @@ void load_rom(char *filename) {
     // } else {
         printf("NO TRAINER\n");
         int i = 0;
-        fread(rom, 1, sizeof(rom), rom_file);
-        // while (!feof(rom_file)) {
-        //     // fread(&RAM[0x200+i], 1, 1, rom_file);
-        memcpy(&RAM[0xC000], rom, 16*1024);
-        memcpy(&RAM[0x8000], rom, 16*1024);
-            // RAM[0x8000+i] = (unsigned char)(getc(rom_file));
-        //     i++;
-        //     if (0x6210 == i) {
-        //         int a = 0;
-        //     }
-        // }
-        // fread(&RAM[0x200], 1, 16384 * rom.header.prg_size, rom_file);
+        fread(&rom.prg_rom, 1, 16*1024*rom.header.prg_blocks, rom_file);
+        fread(&rom.chr_rom, 1, 8*1024*rom.header.chr_blocks, rom_file);
+        memcpy(&RAM[0x8000], &rom.prg_rom, 16*1024);
+        memcpy(&RAM[0xC000], &rom.prg_rom, 16*1024);
     // }
 
     fclose(rom_file);

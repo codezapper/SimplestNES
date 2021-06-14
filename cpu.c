@@ -70,34 +70,39 @@ unsigned char stack_pop() {
     return value;
 }
 
-unsigned char *get_pointer_to_ram(unsigned char opcode, unsigned char first, unsigned char second) {
-    switch (addressing[opcode].addr_mode) {
+uint16_t read_value_from_params(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    switch (addr_mode) {
         case ACCUMULATOR:
-            return &A;
+            return A;
         case IMMEDIATE:
+            return first;
         case RELATIVE:
-            extra_value = first;
-            return &extra_value;
+            return RAM[first];
         case ZEROPAGE:
-            return &RAM[first];
+            return first;
         case ZEROPAGEX:
-            return &RAM[(first + X) % 256];
+            return (first + X) % 256;
         case ZEROPAGEY:
-            return &RAM[first + Y];
+            return first + Y;
         case ABSOLUTE:
-            return &RAM[first];
+            int address = first;
+            address = (second << 8) |address;
+            return address;
         case ABSOLUTEX:
-            return &RAM[first + X];
+            return first + X;
         case ABSOLUTEY:
-            return &RAM[first + X];
+            return first + X;
         case INDIRECTX:
-            return &RAM[first + X];
+            return first + X;
         case INDIRECTY:
-            return &RAM[first + Y];
+            return first + Y;
         case INDIRECT:
             //TODO: Implemented indirect for JMP
             return 0;
     }
+}
+
+void write_value_from_params(unsigned char first, unsigned char second, unsigned char value, unsigned char addr_mode) {
 }
 
 void init_ram()
@@ -105,8 +110,8 @@ void init_ram()
     memset(RAM, 0, sizeof(RAM));
 }
 
-void ADC(unsigned char *address) {
-    int result = A + *address + CF;
+void ADC(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    int result = A + read_value_from_params(first, second, addr_mode) + CF;
     PS = clear_bit(PS, CF);
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -128,11 +133,11 @@ void ADC(unsigned char *address) {
     }
 }
 
-void AND(unsigned char *address) {
+void AND(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    A &= *address;
+    A &= read_value_from_params(first, second, addr_mode);
     if (0 == A) {
         PS = set_bit(PS, ZF);
     }
@@ -141,8 +146,11 @@ void AND(unsigned char *address) {
     }
 }
 
-void ASL(unsigned char *address) {
-    *address <<= 1;
+void ASL(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    unsigned char value = read_value_from_params(first, second, addr_mode);
+    value <<= 1;
+
+    write_value_from_params(first, second, value, addr_mode);
 
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -152,42 +160,43 @@ void ASL(unsigned char *address) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(*address, 7)) {
+    if (check_bit(value, 7)) {
         PS = set_bit(PS, NF);
     }
 
-    if (*address > 255) {
-        *address &= 0xFF;
+    if (value > 255) {
+        value &= 0xFF;
+        write_value_from_params(first, second, value, addr_mode);
         PS = set_bit(PS, CF);
     }
 }
 
-void BCC(unsigned char *address) {
+void BCC(unsigned char first, unsigned char second, unsigned char addr_mode) {
     addressing[0x90].cycles = 2;
     if (check_bit(PS, CF) == 0) {
-        PC += *address;
+        PC += read_value_from_params(first, second, addr_mode);
         addressing[0x90].cycles = 3;
     }
 }
 
-void BCS(unsigned char *address) {
+void BCS(unsigned char first, unsigned char second, unsigned char addr_mode) {
     addressing[0xB0].cycles = 2;
     if (check_bit(PS, CF) == 1) {
-        PC += *address;
+        PC += read_value_from_params(first, second, addr_mode);
         addressing[0xB0].cycles = 3;
     }
 }
 
-void BEQ(unsigned char *address) {
+void BEQ(unsigned char first, unsigned char second, unsigned char addr_mode) {
     addressing[0xF0].cycles = 2;
     if (check_bit(PS, ZF) == 1) {
-        PC += *address;
+        PC += read_value_from_params(first, second, addr_mode);
         addressing[0xF0].cycles = 3;
     }
 }
 
-void BIT(unsigned char *address) {
-    int result = A & *address;
+void BIT(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    int result = A & read_value_from_params(first, second, addr_mode);
 
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -197,40 +206,40 @@ void BIT(unsigned char *address) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(*address, 7)) {
+    if (check_bit(read_value_from_params(first, second, addr_mode), 7)) {
         PS = set_bit(PS, NF);
     }
 
-    if (check_bit(*address, 6)) {
+    if (check_bit(read_value_from_params(first, second, addr_mode), 6)) {
         PS = set_bit(PS, OF);
     }
 }
 
-void BMI(unsigned char *address) {
+void BMI(unsigned char first, unsigned char second, unsigned char addr_mode) {
     addressing[0xF0].cycles = 2;
     if (NF == 1) {
-        PC += *address;
+        PC += read_value_from_params(first, second, addr_mode);
         addressing[0xF0].cycles = 3;
     }
 }
 
-void BNE(unsigned char *address) {
+void BNE(unsigned char first, unsigned char second, unsigned char addr_mode) {
     addressing[0xD0].cycles = 2;
     if (check_bit(PS, ZF) == 0) {
-        PC += *address;
+        PC += read_value_from_params(first, second, addr_mode);
         addressing[0xD0].cycles = 3;
     }
 }
 
-void BPL(unsigned char *address) {
+void BPL(unsigned char first, unsigned char second, unsigned char addr_mode) {
     addressing[0x10].cycles = 2;
     if (check_bit(PS, NF) == 0) {
-        PC += *address;
+        PC += read_value_from_params(first, second, addr_mode);
         addressing[0x10].cycles = 3;
     }
 }
 
-void BRK(unsigned char *address) {
+void BRK(unsigned char first, unsigned char second, unsigned char addr_mode) {
     stack_push(PC >> 8);
     stack_push(PC);
     stack_push(PS);
@@ -238,106 +247,110 @@ void BRK(unsigned char *address) {
     PS = set_bit(PS, BC);
 }
 
-void BVC(unsigned char *address) {
+void BVC(unsigned char first, unsigned char second, unsigned char addr_mode) {
     addressing[0x50].cycles = 2;
     if (check_bit(PS, OF) == 0) {
-        PC += *address;
+        PC += read_value_from_params(first, second, addr_mode);
         addressing[0x50].cycles = 3;
     }
 }
 
-void BVS(unsigned char *address) {
+void BVS(unsigned char first, unsigned char second, unsigned char addr_mode) {
     addressing[0x70].cycles = 2;
     if (check_bit(PS, OF) == 0) {
-        PC += *address;
+        PC += read_value_from_params(first, second, addr_mode);
         addressing[0x70].cycles = 3;
     }
 }
 
-void CLC(unsigned char *address) {
+void CLC(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, CF);
 }
 
-void CLD(unsigned char *address) {
+void CLD(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, DM);
 }
 
-void CLI(unsigned char *address) {
+void CLI(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ID);
 }
 
-void CLV(unsigned char *address) {
+void CLV(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, OF);
 }
 
-void CMP(unsigned char *address) {
+void CMP(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, CF);
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    if (A >= *address) {
+    if (A >= read_value_from_params(first, second, addr_mode)) {
         PS = set_bit(PS, CF);
     }
 
-    if (A == *address) {
+    if (A == read_value_from_params(first, second, addr_mode)) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(A-*address, 7) == 1) {
+    if (check_bit(A-read_value_from_params(first, second, addr_mode), 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
 
-void CPX(unsigned char *address) {
+void CPX(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, CF);
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    if (X >= *address) {
+    if (X >= read_value_from_params(first, second, addr_mode)) {
         PS = set_bit(PS, CF);
     }
 
-    if (X == *address) {
+    if (X == read_value_from_params(first, second, addr_mode)) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(A-*address, 7) == 1) {
+    if (check_bit(A-read_value_from_params(first, second, addr_mode), 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
 
-void CPY(unsigned char *address) {
+void CPY(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, CF);
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
-    if (Y >= *address) {
+    unsigned char value = read_value_from_params(first, second, addr_mode);
+
+    if (Y >= value) {
         PS = set_bit(PS, CF);
     }
 
-    if (Y == *address) {
+    if (Y == value) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(Y-*address, 7) == 1) {
+    if (check_bit(Y-value, 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
 
-void DEC(unsigned char *address) {
-    *address -= 1;
+void DEC(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    unsigned char value = read_value_from_params(first, second, addr_mode);
+
+    write_value_from_params(first, second, value-1, addr_mode);
 
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
-    if (0 == *address) {
+    if (0 == read_value_from_params(first, second, addr_mode)) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(Y-*address, 7) == 1) {
+    if (check_bit(Y-read_value_from_params(first, second, addr_mode), 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
 
-void DEX(unsigned char *address) {
+void DEX(unsigned char first, unsigned char second, unsigned char addr_mode) {
     X -= 1;
 
     PS = clear_bit(PS, ZF);
@@ -346,12 +359,12 @@ void DEX(unsigned char *address) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(Y-*address, 7) == 1) {
+    if (check_bit(Y-read_value_from_params(first, second, addr_mode), 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
 
-void DEY(unsigned char *address) {
+void DEY(unsigned char first, unsigned char second, unsigned char addr_mode) {
     Y -= 1;
 
     PS = clear_bit(PS, ZF);
@@ -360,13 +373,13 @@ void DEY(unsigned char *address) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(Y-*address, 7) == 1) {
+    if (check_bit(Y-read_value_from_params(first, second, addr_mode), 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
 
-void EOR(unsigned char *address) {
-    A ^= *address;
+void EOR(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    A ^= read_value_from_params(first, second, addr_mode);
 
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -374,26 +387,28 @@ void EOR(unsigned char *address) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(Y-*address, 7) == 1) {
+    if (check_bit(Y-read_value_from_params(first, second, addr_mode), 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
 
-void INC(unsigned char *address) {
-    *address += 1;
+void INC(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    unsigned char value = read_value_from_params(first, second, addr_mode);
+
+    write_value_from_params(first, second, value-1, addr_mode);
 
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
-    if (0 == *address) {
+    if (0 == read_value_from_params(first, second, addr_mode)) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(Y-*address, 7) == 1) {
+    if (check_bit(Y-read_value_from_params(first, second, addr_mode), 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
 
-void INX(unsigned char *address) {
+void INX(unsigned char first, unsigned char second, unsigned char addr_mode) {
     X += 1;
 
     PS = clear_bit(PS, ZF);
@@ -402,12 +417,12 @@ void INX(unsigned char *address) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(Y-*address, 7) == 1) {
+    if (check_bit(Y-read_value_from_params(first, second, addr_mode), 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
 
-void INY(unsigned char *address) {
+void INY(unsigned char first, unsigned char second, unsigned char addr_mode) {
     Y += 1;
 
     PS = clear_bit(PS, ZF);
@@ -416,28 +431,29 @@ void INY(unsigned char *address) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(Y-*address, 7) == 1) {
+    if (check_bit(Y-read_value_from_params(first, second, addr_mode), 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
 
-void JMP(unsigned char *address) {
-    PC = *address;
+void JMP(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    uint16_t value = read_value_from_params(first, second, addr_mode);
+    PC = read_value_from_params(first, second, addr_mode);
 }
 
-void JSR(unsigned char *address) {
+void JSR(unsigned char first, unsigned char second, unsigned char addr_mode) {
     int return_point = PC + 2;
     stack_push(return_point >> 8);
     stack_push(return_point & 0x00FF);
 
-    PC = *address;
+    PC  = read_value_from_params(first, second, addr_mode);
 }
 
-void LDA(unsigned char *address) {
+void LDA(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    A = *address;
+    A = read_value_from_params(first, second, addr_mode);
     if (0 == A) {
         PS = set_bit(PS, ZF);
     }
@@ -446,11 +462,11 @@ void LDA(unsigned char *address) {
     }
 }
 
-void LDX(unsigned char *address) {
+void LDX(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    X = *address;
+    X  = read_value_from_params(first, second, addr_mode);
     if (0 == X) {
         PS = set_bit(PS, ZF);
     }
@@ -459,11 +475,11 @@ void LDX(unsigned char *address) {
     }
 }
 
-void LDY(unsigned char *address) {
+void LDY(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    Y = *address;
+    Y  = read_value_from_params(first, second, addr_mode);
     if (0 == Y) {
         PS = set_bit(PS, ZF);
     }
@@ -472,32 +488,35 @@ void LDY(unsigned char *address) {
     }
 }
 
-void LSR(unsigned char *address) {
+void LSR(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, CF);
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    if (check_bit(*address, 0) == 1) {
+    if (check_bit(read_value_from_params(first, second, addr_mode), 0) == 1) {
         PS = set_bit(PS, CF);
     }
 
-    *address <<= 1;
-    *address &= 0x00FF;
+    unsigned char value = read_value_from_params(first, second, addr_mode);
 
-    if (0 == *address) {
+    value <<= 1;
+    value &= 0x00FF;
+
+    if (0 == value) {
         PS = set_bit(PS, ZF);
     }
-    if (check_bit(*address, 7)) {
+    if (check_bit(read_value_from_params(first, second, addr_mode), 7)) {
         PS = set_bit(PS, NF);
     }
 
+    write_value_from_params(first, second, value, addr_mode);
 }
 
-void NOP(unsigned char *address) {
+void NOP(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
-void ORA(unsigned char *address) {
-    A |= *address;
+void ORA(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    A |= read_value_from_params(first, second, addr_mode);
 
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -505,29 +524,29 @@ void ORA(unsigned char *address) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(Y-*address, 7) == 1) {
+    if (check_bit(Y-read_value_from_params(first, second, addr_mode), 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
 
-void PHA(unsigned char *address) {
+void PHA(unsigned char first, unsigned char second, unsigned char addr_mode) {
     stack_push(A);
 }
 
-void PHP(unsigned char *address) {
+void PHP(unsigned char first, unsigned char second, unsigned char addr_mode) {
     stack_push(PS);
 }
 
-void PLA(unsigned char *address) {
+void PLA(unsigned char first, unsigned char second, unsigned char addr_mode) {
     A = stack_pop();
 }
 
-void PLP(unsigned char *address) {
+void PLP(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = stack_pop();
 }
 
-void ROL(unsigned char *address) {
-    int value = *address;
+void ROL(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    int value  = read_value_from_params(first, second, addr_mode);
     if (check_bit(PS, CF) == 1) {
         value = set_bit(value, 0);
     } else {
@@ -554,12 +573,12 @@ void ROL(unsigned char *address) {
         PS = set_bit(PS, ZF);
     }
 
-    *address = value;
+    write_value_from_params(first, second, value, addr_mode);
 }
 
 
-void ROR(unsigned char *address) {
-    int value = *address;
+void ROR(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    int value  = read_value_from_params(first, second, addr_mode);
     if (check_bit(PS, CF) == 1) {
         value = set_bit(value, 7);
     } else {
@@ -586,19 +605,19 @@ void ROR(unsigned char *address) {
         PS = set_bit(PS, ZF);
     }
 
-    *address = value;
+    write_value_from_params(first, second, value, addr_mode);
 }
 
-void RTI(unsigned char *address) {
+void RTI(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = stack_pop();
 }
 
-void RTS(unsigned char *address) {
+void RTS(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PC = stack_pop();
 }
 
-void SBC(unsigned char *address) {
-    int result = A - *address;
+void SBC(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    int result = A - read_value_from_params(first, second, addr_mode);
 
     if (check_bit(PS, CF) == 0) {
         result -= 1;
@@ -625,31 +644,31 @@ void SBC(unsigned char *address) {
     }
 }
 
-void SEC(unsigned char *address) {
+void SEC(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = set_bit(PS, CF);
 }
 
-void SED(unsigned char *address) {
+void SED(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = set_bit(PS, DM);
 }
 
-void SEI(unsigned char *address) {
+void SEI(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = set_bit(PS, ID);
 }
 
-void STA(unsigned char *address) {
-    *address = A;
+void STA(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    write_value_from_params(first, second, A, addr_mode);
 }
 
-void STX(unsigned char *address) {
-    *address = X;
+void STX(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    write_value_from_params(first, second, X, addr_mode);
 }
 
-void STY(unsigned char *address) {
-    *address = Y;
+void STY(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    write_value_from_params(first, second, Y, addr_mode);
 }
 
-void TAX(unsigned char *address) {
+void TAX(unsigned char first, unsigned char second, unsigned char addr_mode) {
     X = A;
 
     if (0 == X) {
@@ -660,7 +679,7 @@ void TAX(unsigned char *address) {
     }
 }
 
-void TAY(unsigned char *address) {
+void TAY(unsigned char first, unsigned char second, unsigned char addr_mode) {
     Y = A;
 
     if (0 == Y) {
@@ -671,7 +690,7 @@ void TAY(unsigned char *address) {
     }
 }
 
-void TSX(unsigned char *address) {
+void TSX(unsigned char first, unsigned char second, unsigned char addr_mode) {
     X = SP;
 
     if (0 == X) {
@@ -682,7 +701,7 @@ void TSX(unsigned char *address) {
     }
 }
 
-void TXA(unsigned char *address) {
+void TXA(unsigned char first, unsigned char second, unsigned char addr_mode) {
     A = X;
 
     if (0 == A) {
@@ -693,11 +712,11 @@ void TXA(unsigned char *address) {
     }
 }
 
-void TXS(unsigned char *address) {
+void TXS(unsigned char first, unsigned char second, unsigned char addr_mode) {
     SP = 0;
 }
 
-void TYA(unsigned char *address) {
+void TYA(unsigned char first, unsigned char second, unsigned char addr_mode) {
     A = Y;
 
     if (0 == A) {
@@ -707,4 +726,3 @@ void TYA(unsigned char *address) {
         PS = set_bit(PS, NF);
     }
 }
-
