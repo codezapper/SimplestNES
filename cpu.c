@@ -251,7 +251,8 @@ void BEQ(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void BIT(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    int result = A & read_value_from_params(first, second, addr_mode);
+    unsigned char address = read_value_from_params(first, second, addr_mode);
+    int result = A & RAM[address];
 
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -261,11 +262,11 @@ void BIT(unsigned char first, unsigned char second, unsigned char addr_mode) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(read_value_from_params(first, second, addr_mode), 7)) {
+    if (check_bit(RAM[address], 7)) {
         PS = set_bit(PS, NF);
     }
 
-    if (check_bit(read_value_from_params(first, second, addr_mode), 6)) {
+    if (check_bit(RAM[address], 6)) {
         PS = set_bit(PS, OF);
     }
 }
@@ -273,7 +274,7 @@ void BIT(unsigned char first, unsigned char second, unsigned char addr_mode) {
 void BMI(unsigned char first, unsigned char second, unsigned char addr_mode) {
     addressing[0xF0].cycles = 2;
     if (NF == 1) {
-        PC += read_value_from_params(first, second, addr_mode);
+        PC += (char)read_value_from_params(first, second, addr_mode);
         addressing[0xF0].cycles = 3;
     }
 }
@@ -281,7 +282,7 @@ void BMI(unsigned char first, unsigned char second, unsigned char addr_mode) {
 void BNE(unsigned char first, unsigned char second, unsigned char addr_mode) {
     addressing[0xD0].cycles = 2;
     if (check_bit(PS, ZF) == 0) {
-        PC += read_value_from_params(first, second, addr_mode);
+        PC += (char)read_value_from_params(first, second, addr_mode);
         addressing[0xD0].cycles = 3;
     }
 }
@@ -289,7 +290,7 @@ void BNE(unsigned char first, unsigned char second, unsigned char addr_mode) {
 void BPL(unsigned char first, unsigned char second, unsigned char addr_mode) {
     addressing[0x10].cycles = 2;
     if (check_bit(PS, NF) == 0) {
-        PC += read_value_from_params(first, second, addr_mode);
+        PC += (char)read_value_from_params(first, second, addr_mode);
         addressing[0x10].cycles = 3;
     }
 }
@@ -313,8 +314,8 @@ void BVC(unsigned char first, unsigned char second, unsigned char addr_mode) {
 
 void BVS(unsigned char first, unsigned char second, unsigned char addr_mode) {
     addressing[0x70].cycles = 2;
-    if (check_bit(PS, OF) == 0) {
-        PC += read_value_from_params(first, second, addr_mode);
+    if (check_bit(PS, OF) == 1) {
+        PC += (char)read_value_from_params(first, second, addr_mode);
         addressing[0x70].cycles = 3;
     }
 }
@@ -589,7 +590,7 @@ void PHA(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void PHP(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    PS = set_bit(PS, B4);
+    PS = clear_bit(PS, B4);
     PS = set_bit(PS, B5);
     stack_push(PS);
 }
