@@ -41,8 +41,8 @@ void main(int argc, char **argv) {
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_reads.nes");
     // load_rom("/home/gabriele/Downloads/bf.nes");
     load_rom("/home/gabriele/Downloads/cpu_test/nestest.nes");
-    printf("%d\n", rom.header.prg_blocks);
-    printf("%s %d %d %d %d %d %d %d\n", rom.header.nes, rom.header.prg_blocks, rom.header.chr_blocks, rom.header.flags_6, rom.header.flags_7, rom.header.flags_8, rom.header.flags_9, rom.header.flags_10, rom.header.padding[5]);
+    // printf("%d\n", rom.header.prg_blocks);
+    // printf("%s %d %d %d %d %d %d %d\n", rom.header.nes, rom.header.prg_blocks, rom.header.chr_blocks, rom.header.flags_6, rom.header.flags_7, rom.header.flags_8, rom.header.flags_9, rom.header.flags_10, rom.header.padding[5]);
 
     unsigned char opcode = 0;
     unsigned char value = 0;

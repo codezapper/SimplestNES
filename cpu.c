@@ -44,15 +44,16 @@ uint16_t SP = 0xFF;
 unsigned char A = 0;
 unsigned char X = 0;
 unsigned char Y = 0;
-unsigned char PS = 0;
+unsigned char PS = 0x24;
 
-unsigned char CF = 0;
-unsigned char ZF = 1;
-unsigned char ID = 2;
-unsigned char DM = 3;
-unsigned char BC = 4;
-unsigned char OF = 5;
-unsigned char NF = 6;
+#define CF  0
+#define ZF  1
+#define ID  2
+#define DM  3
+#define B4  4
+#define B5  5
+#define OF  6
+#define NF  7
 
 int cycles_cnt = 0;
 unsigned char extra_value = 0;
@@ -295,9 +296,11 @@ void BPL(unsigned char first, unsigned char second, unsigned char addr_mode) {
 
 void BRK(unsigned char first, unsigned char second, unsigned char addr_mode) {
     push_PC();
+    PS = set_bit(PS, B4);
+    PS = set_bit(PS, B5);
+    PS = set_bit(PS, ID);
     stack_push(PS);
     PC = (RAM[0xFFFF] << 8) | RAM[0xFFFE];
-    PS = set_bit(PS, BC);
 }
 
 void BVC(unsigned char first, unsigned char second, unsigned char addr_mode) {
@@ -586,6 +589,8 @@ void PHA(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void PHP(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    PS = set_bit(PS, B4);
+    PS = set_bit(PS, B5);
     stack_push(PS);
 }
 

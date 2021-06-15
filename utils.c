@@ -11,6 +11,6 @@ unsigned char set_bit(unsigned char value, int bit) {
 }
 
 unsigned char clear_bit(unsigned char value, int bit) {
-    return value | (1 << bit);
+    return value & ~(1 << bit);
 }
 
