@@ -40,7 +40,7 @@
 unsigned char RAM[0xFFFF];
 
 uint16_t PC = 0;
-uint16_t SP = 0x100;
+uint16_t SP = 0xFF;
 unsigned char A = 0;
 unsigned char X = 0;
 unsigned char Y = 0;
@@ -61,14 +61,32 @@ extern struct addressing_data addressing[0xFF];
 
 void stack_push(unsigned char value) {
     RAM[SP + 0x100] = value;
-    SP++;
+    SP--;
 }
 
 unsigned char stack_pop() {
+    SP++;
     unsigned char value = RAM[SP + 0x100];
-    SP--;
     return value;
 }
+
+void push_PC() {
+    unsigned char high = PC >> 8;
+    unsigned char low = (PC << 8) >> 8;
+
+    stack_push(low);
+    stack_push(high);
+}
+
+void pop_PC() {
+    unsigned char high = stack_pop();
+    unsigned char low = stack_pop();
+
+    PC = high;
+    PC <<= 8;
+    PC |= low;
+}
+
 
 uint16_t read_value_from_params(unsigned char first, unsigned char second, unsigned char addr_mode) {
     switch (addr_mode) {
@@ -77,7 +95,7 @@ uint16_t read_value_from_params(unsigned char first, unsigned char second, unsig
         case IMMEDIATE:
             return first;
         case RELATIVE:
-            return RAM[first];
+            first;
         case ZEROPAGE:
             return first;
         case ZEROPAGEX:
@@ -210,7 +228,7 @@ void ASL(unsigned char first, unsigned char second, unsigned char addr_mode) {
 void BCC(unsigned char first, unsigned char second, unsigned char addr_mode) {
     addressing[0x90].cycles = 2;
     if (check_bit(PS, CF) == 0) {
-        PC += read_value_from_params(first, second, addr_mode);
+        PC += (char)read_value_from_params(first, second, addr_mode);
         addressing[0x90].cycles = 3;
     }
 }
@@ -218,7 +236,7 @@ void BCC(unsigned char first, unsigned char second, unsigned char addr_mode) {
 void BCS(unsigned char first, unsigned char second, unsigned char addr_mode) {
     addressing[0xB0].cycles = 2;
     if (check_bit(PS, CF) == 1) {
-        PC += read_value_from_params(first, second, addr_mode);
+        PC += (char)read_value_from_params(first, second, addr_mode);
         addressing[0xB0].cycles = 3;
     }
 }
@@ -226,7 +244,7 @@ void BCS(unsigned char first, unsigned char second, unsigned char addr_mode) {
 void BEQ(unsigned char first, unsigned char second, unsigned char addr_mode) {
     addressing[0xF0].cycles = 2;
     if (check_bit(PS, ZF) == 1) {
-        PC += read_value_from_params(first, second, addr_mode);
+        PC += (char)read_value_from_params(first, second, addr_mode);
         addressing[0xF0].cycles = 3;
     }
 }
@@ -276,8 +294,7 @@ void BPL(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void BRK(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    stack_push(PC >> 8);
-    stack_push(PC);
+    push_PC();
     stack_push(PS);
     PC = (RAM[0xFFFF] << 8) | RAM[0xFFFE];
     PS = set_bit(PS, BC);
@@ -478,11 +495,10 @@ void JMP(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void JSR(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    int return_point = PC + 2;
-    stack_push(return_point >> 8);
-    stack_push(return_point & 0x00FF);
+    PC += 2; // Set return point
+    push_PC();
 
-    PC  = read_value_from_params(first, second, addr_mode);
+    PC = read_value_from_params(first, second, addr_mode);
 }
 
 void LDA(unsigned char first, unsigned char second, unsigned char addr_mode) {
@@ -649,7 +665,7 @@ void RTI(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void RTS(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    PC = stack_pop();
+    pop_PC();
 }
 
 void SBC(unsigned char first, unsigned char second, unsigned char addr_mode) {

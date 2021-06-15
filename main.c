@@ -16,18 +16,19 @@ extern struct addressing_data addressing[(0xFF) + 1];
 extern uint16_t PC;
 
 int is_jump_or_branch(char *fn_name) {
-    if ((strncmp(fn_name, "BCC", 3) != 0) &&
-        (strncmp(fn_name, "BCS", 3) != 0) &&
-        (strncmp(fn_name, "BEQ", 3) != 0) &&
-        (strncmp(fn_name, "BMI", 3) != 0) &&
-        (strncmp(fn_name, "BNE", 3) != 0) &&
-        (strncmp(fn_name, "BPL", 3) != 0) &&
+    if (
+        // (strncmp(fn_name, "BCC", 3) != 0) &&
+        // (strncmp(fn_name, "BCS", 3) != 0) &&
+        // (strncmp(fn_name, "BEQ", 3) != 0) &&
+        // (strncmp(fn_name, "BMI", 3) != 0) &&
+        // (strncmp(fn_name, "BNE", 3) != 0) &&
+        // (strncmp(fn_name, "BPL", 3) != 0) &&
         (strncmp(fn_name, "BRK", 3) != 0) &&
-        (strncmp(fn_name, "BVC", 3) != 0) &&
-        (strncmp(fn_name, "BVS", 3) != 0) &&
+        // (strncmp(fn_name, "BVC", 3) != 0) &&
+        // (strncmp(fn_name, "BVS", 3) != 0) &&
         (strncmp(fn_name, "JMP", 3) != 0) &&
-        (strncmp(fn_name, "JSR", 3) != 0) &&
-        (strncmp(fn_name, "RTS", 3) != 0)
+        (strncmp(fn_name, "JSR", 3) != 0)
+        // (strncmp(fn_name, "RTS", 3) != 0)
         ) {
         return 0;
     }
