@@ -54,7 +54,7 @@ void load_rom(char *filename) {
         // TODO: implement trainer
         // printf("TRAINER\n");
     // } else {
-        printf("NO TRAINER\n");
+        // printf("NO TRAINER\n");
         int i = 0;
         fread(&rom.prg_rom, 1, 16*1024*rom.header.prg_blocks, rom_file);
         fread(&rom.chr_rom, 1, 8*1024*rom.header.chr_blocks, rom_file);

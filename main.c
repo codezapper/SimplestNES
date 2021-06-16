@@ -15,7 +15,7 @@ extern struct ROM rom;
 extern struct addressing_data addressing[(0xFF) + 1];
 extern uint16_t PC;
 
-int is_jump_or_branch(char *fn_name) {
+int is_jump_or_branch(unsigned char *fn_name) {
     if (
         // (strncmp(fn_name, "BCC", 3) != 0) &&
         // (strncmp(fn_name, "BCS", 3) != 0) &&
@@ -58,18 +58,25 @@ void main(int argc, char **argv) {
         first = (RAM[PC + 1]);
         second = (RAM[PC + 2]);
 
-        printf("%x, %x %x %x %s  A:%x X:%x Y:%x P:%x SP:%x CYCLE:%d\n",
-        PC, opcode, first, second, addressing[opcode].name, A, X, Y, PS, SP, 0); 
+        unsigned char fn_name[4];
+        memset(fn_name, 0, 4);
+        strncpy(fn_name, addressing[opcode].name, 3);
+
+        int am = addressing[opcode].addr_mode;
+
+        if ((ZEROPAGEX == am) || (ZEROPAGEY == am) || (ABSOLUTEX == am) || (ABSOLUTEY == am) || (INDIRECTX == am) || (INDIRECTY == am)) {
+            printf("%x  %02x %02x %02x %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, second, fn_name, A, X, Y, PS, SP, 0); 
+        } else if ((ZEROPAGE == am) || (ABSOLUTE == am) || (RELATIVE == am) || (INDIRECT == am) || (IMMEDIATE == am)) {
+            printf("%x  %02x %02x      %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, fn_name, A, X, Y, PS, SP, 0); 
+        } else {
+            printf("%x  %02x         %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, fn_name, A, X, Y, PS, SP, 0); 
+        }
 
         void (*fun_ptr)(unsigned char, unsigned char, unsigned char) = addressing[opcode].opcode_fun;
         (*fun_ptr)(first, second, addressing[opcode].addr_mode);
 
-        unsigned char *fn_name = addressing[opcode].name;
-
         if (is_jump_or_branch(fn_name) == 0) {
             PC++;
-
-            int am = addressing[opcode].addr_mode;
             if ((ZEROPAGEX == am) || (ZEROPAGEY == am) || (ABSOLUTEX == am) || (ABSOLUTEY == am) || (INDIRECTX == am) || (INDIRECTY == am)) {
                 PC += 2;
             } else if ((ZEROPAGE == am) || (ABSOLUTE == am) || (RELATIVE == am) || (INDIRECT == am) || (IMMEDIATE == am)) {
