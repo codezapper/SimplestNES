@@ -154,7 +154,7 @@ void ADC(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, NF);
     PS = clear_bit(PS, OF);
 
-    unsigned char value = ~read_value(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF;
+    unsigned char value = read_value(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF;
     uint16_t result = A + value + check_bit(PS, CF);
 
     if ((~(A ^ value) & (A ^ result) & 0x80) > 0) {
@@ -795,6 +795,9 @@ void STY(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void TAX(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+
     X = A;
 
     if (0 == X) {
@@ -806,6 +809,9 @@ void TAX(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void TAY(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+
     Y = A;
 
     if (0 == Y) {
@@ -817,6 +823,9 @@ void TAY(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void TSX(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+
     X = SP;
 
     if (0 == X) {
@@ -828,6 +837,9 @@ void TSX(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void TXA(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+
     A = X;
 
     if (0 == A) {
@@ -843,6 +855,9 @@ void TXS(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void TYA(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+
     A = Y;
 
     if (0 == A) {

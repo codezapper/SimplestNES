@@ -72,14 +72,18 @@ void main(int argc, char **argv) {
             printf("%x  %02x         %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, fn_name, A, X, Y, PS, SP, 0); 
         }
 
+        if (PC == 0xce1e) {
+            int a = 0;
+        }
+
         void (*fun_ptr)(unsigned char, unsigned char, unsigned char) = addressing[opcode].opcode_fun;
         (*fun_ptr)(first, second, addressing[opcode].addr_mode);
 
         if (is_jump_or_branch(fn_name) == 0) {
             PC++;
-            if ((ZEROPAGEX == am) || (ZEROPAGEY == am) || (ABSOLUTEX == am) || (ABSOLUTEY == am) || (INDIRECTX == am) || (INDIRECTY == am)) {
+            if ((ZEROPAGEX == am) || (ZEROPAGEY == am) || (ABSOLUTE == am) || (ABSOLUTEX == am) || (ABSOLUTEY == am) || (INDIRECTX == am) || (INDIRECTY == am)) {
                 PC += 2;
-            } else if ((ZEROPAGE == am) || (ABSOLUTE == am) || (RELATIVE == am) || (INDIRECT == am) || (IMMEDIATE == am)) {
+            } else if ((ZEROPAGE == am) || (RELATIVE == am) || (INDIRECT == am) || (IMMEDIATE == am)) {
                 PC++;
             }
         }
