@@ -150,15 +150,15 @@ void init_ram()
 }
 
 void ADC(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    unsigned char memory_value = read_value(get_address_from_params(first, second, addr_mode), addr_mode);
-    int result = A + memory_value + check_bit(PS, CF);
-    PS = clear_bit(PS, CF);
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
     PS = clear_bit(PS, OF);
 
-    if (result > 255) {
-        PS = set_bit(PS, CF);
+    unsigned char value = ~read_value(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF;
+    uint16_t result = A + value + check_bit(PS, CF);
+
+    if ((~(A ^ value) & (A ^ result) & 0x80) > 0) {
+        PS = set_bit(PS, OF);
     }
 
     if (0 == (result & 0xFF)) {
@@ -168,8 +168,10 @@ void ADC(unsigned char first, unsigned char second, unsigned char addr_mode) {
         PS = set_bit(PS, NF);
     }
 
-    if (check_bit((~(A ^ memory_value) & (A ^ result)), 7) == 1) {
-        PS = set_bit(PS, OF);
+    if (result > 255) {
+        PS = set_bit(PS, CF);
+    } else {
+        PS = clear_bit(PS, CF);
     }
 
     A = (unsigned char)(result & 0xFF);
@@ -741,15 +743,15 @@ void RTS(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void SBC(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    unsigned char memory_value = read_value(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF;
-    int result = A - memory_value - (1 - check_bit(PS, CF));
-    PS = set_bit(PS, CF);
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
     PS = clear_bit(PS, OF);
 
-    if (result & 0xFF00) {
-        PS = set_bit(PS, CF);
+    unsigned char value = ~read_value(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF;
+    uint16_t result = A + value + check_bit(PS, CF);
+
+    if ((~(A ^ value) & (A ^ result) & 0x80) > 0) {
+        PS = set_bit(PS, OF);
     }
 
     if (0 == (result & 0xFF)) {
@@ -759,11 +761,9 @@ void SBC(unsigned char first, unsigned char second, unsigned char addr_mode) {
         PS = set_bit(PS, NF);
     }
 
-    if (check_bit((~(A ^ memory_value) & (A ^ result)), 7) == 1) {
-        PS = set_bit(PS, OF);
-    }
-
-    if ((result > 255) || (result < 0)) {
+    if (result > 255) {
+        PS = set_bit(PS, CF);
+    } else {
         PS = clear_bit(PS, CF);
     }
 
