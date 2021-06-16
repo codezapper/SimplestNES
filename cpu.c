@@ -150,7 +150,7 @@ void init_ram()
 }
 
 void ADC(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    int result = A + RAM[get_address_from_params(first, second, addr_mode)] + CF;
+    int result = A + read_value(get_address_from_params(first, second, addr_mode), addr_mode) + CF;
     PS = clear_bit(PS, CF);
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -734,7 +734,7 @@ void RTS(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void SBC(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    int result = A - RAM[get_address_from_params(first, second, addr_mode)];
+    int result = A - read_value(get_address_from_params(first, second, addr_mode), addr_mode);
 
     if (check_bit(PS, CF) == 0) {
         result -= 1;
