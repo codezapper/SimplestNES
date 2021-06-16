@@ -830,7 +830,7 @@ void TXA(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void TXS(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    SP = 0;
+    SP = X;
 }
 
 void TYA(unsigned char first, unsigned char second, unsigned char addr_mode) {
