@@ -150,26 +150,29 @@ void init_ram()
 }
 
 void ADC(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    int result = A + read_value(get_address_from_params(first, second, addr_mode), addr_mode) + CF;
+    unsigned char memory_value = read_value(get_address_from_params(first, second, addr_mode), addr_mode);
+    int result = A + memory_value + check_bit(PS, CF);
     PS = clear_bit(PS, CF);
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
     PS = clear_bit(PS, OF);
 
-    if (result > 256) {
+    if (result > 255) {
         PS = set_bit(PS, CF);
     }
-    A = result;
-    if (0 == A) {
+
+    if (0 == (result & 0xFF)) {
         PS = set_bit(PS, ZF);
     }
-    if (check_bit(A, 7)) {
+    if (check_bit(result, 7)) {
         PS = set_bit(PS, NF);
     }
 
-    if ((127 < A) || (-128 > A)) {
+    if (check_bit((~(A ^ memory_value) & (A ^ result)), 7) == 1) {
         PS = set_bit(PS, OF);
     }
+
+    A = (unsigned char)(result & 0xFF);
 }
 
 void AND(unsigned char first, unsigned char second, unsigned char addr_mode) {
@@ -332,15 +335,17 @@ void CMP(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    if (A >= read_value(get_address_from_params(first, second, addr_mode), addr_mode)) {
+    unsigned char value = (unsigned char)(read_value(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF);
+
+    if (A >= value) {
         PS = set_bit(PS, CF);
     }
 
-    if (A == read_value(get_address_from_params(first, second, addr_mode), addr_mode)) {
+    if (A == value) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(A-RAM[get_address_from_params(first, second, addr_mode)], 7) == 1) {
+    if (check_bit(A-value, 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
@@ -350,15 +355,17 @@ void CPX(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    if (X >= read_value(get_address_from_params(first, second, addr_mode), addr_mode)) {
+    unsigned char value = (unsigned char)(read_value(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF);
+
+    if (X >= value) {
         PS = set_bit(PS, CF);
     }
 
-    if (X == read_value(get_address_from_params(first, second, addr_mode), addr_mode)) {
+    if (X == value) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(A-RAM[get_address_from_params(first, second, addr_mode)], 7) == 1) {
+    if (check_bit(X-value, 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
@@ -383,9 +390,9 @@ void CPY(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void DEC(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    unsigned char value = (unsigned char)(read_value(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF);
+    unsigned char value = (unsigned char)(read_value(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF) - 1;
 
-    RAM[get_address_from_params(first, second, addr_mode)] = value-1;
+    RAM[get_address_from_params(first, second, addr_mode)] = value;
 
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -393,7 +400,7 @@ void DEC(unsigned char first, unsigned char second, unsigned char addr_mode) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(Y-RAM[get_address_from_params(first, second, addr_mode)], 7) == 1) {
+    if (check_bit(value, 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
@@ -407,7 +414,7 @@ void DEX(unsigned char first, unsigned char second, unsigned char addr_mode) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(Y-RAM[get_address_from_params(first, second, addr_mode)], 7) == 1) {
+    if (check_bit(X, 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
@@ -421,7 +428,7 @@ void DEY(unsigned char first, unsigned char second, unsigned char addr_mode) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(Y-RAM[get_address_from_params(first, second, addr_mode)], 7) == 1) {
+    if (check_bit(Y, 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
@@ -435,7 +442,7 @@ void EOR(unsigned char first, unsigned char second, unsigned char addr_mode) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(Y-RAM[get_address_from_params(first, second, addr_mode)], 7) == 1) {
+    if (check_bit(A, 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
@@ -540,11 +547,11 @@ void LSR(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    if (check_bit(RAM[get_address_from_params(first, second, addr_mode)], 0) == 1) {
+    unsigned char value = (unsigned char)(read_value(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF);
+
+    if (check_bit(value, 0) == 1) {
         PS = set_bit(PS, CF);
     }
-
-    unsigned char value = (unsigned char)(read_value(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF);
 
     value <<= 1;
     value &= 0x00FF;
@@ -552,7 +559,7 @@ void LSR(unsigned char first, unsigned char second, unsigned char addr_mode) {
     if (0 == value) {
         PS = set_bit(PS, ZF);
     }
-    if (check_bit(RAM[get_address_from_params(first, second, addr_mode)], 7)) {
+    if (check_bit(value, 7)) {
         PS = set_bit(PS, NF);
     }
 
@@ -571,7 +578,7 @@ void ORA(unsigned char first, unsigned char second, unsigned char addr_mode) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(Y-RAM[get_address_from_params(first, second, addr_mode)], 7) == 1) {
+    if (check_bit(A, 7) == 1) {
         PS = set_bit(PS, NF);
     }
 }
@@ -734,31 +741,33 @@ void RTS(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void SBC(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    int result = A - read_value(get_address_from_params(first, second, addr_mode), addr_mode);
-
-    if (check_bit(PS, CF) == 0) {
-        result -= 1;
-    }
-
-    PS = clear_bit(PS, CF);
+    unsigned char memory_value = read_value(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF;
+    int result = A - memory_value - (1 - check_bit(PS, CF));
+    PS = set_bit(PS, CF);
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
     PS = clear_bit(PS, OF);
 
-    if (result > 256) {
+    if (result & 0xFF00) {
         PS = set_bit(PS, CF);
     }
-    A = result;
-    if (0 == A) {
+
+    if (0 == (result & 0xFF)) {
         PS = set_bit(PS, ZF);
     }
-    if (check_bit(A, 7)) {
+    if (check_bit(result, 7)) {
         PS = set_bit(PS, NF);
     }
 
-    if ((127 < A) || (-128 > A)) {
+    if (check_bit((~(A ^ memory_value) & (A ^ result)), 7) == 1) {
         PS = set_bit(PS, OF);
     }
+
+    if ((result > 255) || (result < 0)) {
+        PS = clear_bit(PS, CF);
+    }
+
+    A = (unsigned char)(result & 0xFF);
 }
 
 void SEC(unsigned char first, unsigned char second, unsigned char addr_mode) {
