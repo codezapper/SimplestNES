@@ -65,13 +65,22 @@ void main(int argc, char **argv) {
 
         int am = addressing[opcode].addr_mode;
 
+        char s[1024];
         if ((ZEROPAGEX == am) || (ZEROPAGEY == am) || (ABSOLUTEX == am) || (ABSOLUTEY == am) || (INDIRECTX == am) || (INDIRECTY == am)) {
-            printf("%x  %02x %02x %02x %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, second, fn_name, A, X, Y, PS, SP, 0); 
+            sprintf(s, "%04x %02x %02x %02x %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, second, fn_name, A, X, Y, PS, SP, 0); 
         } else if ((ZEROPAGE == am) || (ABSOLUTE == am) || (RELATIVE == am) || (INDIRECT == am) || (IMMEDIATE == am)) {
-            printf("%x  %02x %02x      %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, fn_name, A, X, Y, PS, SP, 0); 
+            sprintf(s, "%04x %02x %02x    %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, fn_name, A, X, Y, PS, SP, 0); 
         } else {
-            printf("%x  %02x         %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, fn_name, A, X, Y, PS, SP, 0); 
+            sprintf(s, "%04x %02x       %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, fn_name, A, X, Y, PS, SP, 0); 
         }
+
+        for (int i = 0; s[i]!='\0'; i++) {
+            if(s[i] >= 'a' && s[i] <= 'z') {
+                s[i] = s[i] -32;
+            }
+        }
+
+        printf(s);
 
         void (*fun_ptr)(unsigned char, unsigned char, unsigned char) = addressing[opcode].opcode_fun;
         (*fun_ptr)(first, second, addressing[opcode].addr_mode);

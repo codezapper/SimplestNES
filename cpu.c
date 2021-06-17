@@ -126,9 +126,18 @@ uint16_t get_address_from_params(unsigned char first, unsigned char second, unsi
             low = RAM[first & 0xFF];
             return (high | low) + Y;
         case INDIRECT:
-            high = second;
-            high <<= 8;
-            return ((RAM[(high | first) + 1] << 8) | RAM[(high | first)]);
+            if (first == 0xFF) {
+                high = (second << 8);
+                low = (second << 8) | 0x00FF;
+                address = (RAM[high] << 8) | RAM[low];
+            } else {
+                high = second;
+                high <<= 8;
+                low = first;
+                address = (RAM[(high | low) + 1] << 8) | RAM[(high | low)];
+            }
+
+            return address;
     }
 }
 
@@ -144,14 +153,10 @@ uint16_t read_value(uint16_t value, unsigned char addr_mode) {
         case ABSOLUTE:
         case ABSOLUTEX:
         case ABSOLUTEY:
-            return RAM[value];
         case INDIRECTX:
-            return RAM[value];
         case INDIRECTY:
-            return RAM[value];
         case INDIRECT:
-            //TODO: Implemented indirect for JMP
-            return 0;
+            return RAM[value];
     }
 }
 
