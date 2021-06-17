@@ -276,7 +276,7 @@ void BIT(unsigned char first, unsigned char second, unsigned char addr_mode) {
 
 void BMI(unsigned char first, unsigned char second, unsigned char addr_mode) {
     addressing[0xF0].cycles = 2;
-    if (NF == 1) {
+    if (check_bit(PS, NF) == 1) {
         PC += (char)get_address_from_params(first, second, addr_mode);
         addressing[0xF0].cycles = 3;
     }

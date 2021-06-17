@@ -34,7 +34,7 @@ struct addressing_data addressing[(0xFF) + 1] = {
     {&INY, "INY", IMPLICIT, 2}, {&CMP, "CMP", IMMEDIATE, 2}, {&DEX, "DEX", IMPLICIT, 2}, {0, "   ", 0, 0}, {&CPY, "CPY", ABSOLUTE, 4}, {&CMP, "CMP", ABSOLUTE, 4}, {&DEC, "DEC", ABSOLUTE, 6}, {0, "   ", 0, 0}, {&BNE, "BNE", RELATIVE, 2}, {&CMP, "CMP", INDIRECTY, -5},
     {0, "   ", 0, 0}, {0, "   ", 0, 0}, {0, "   ", 0, 0}, {&CMP, "CMP", ZEROPAGEX, 4}, {&DEC, "DEC", ZEROPAGEX, 6}, {0, "   ", 0, 0}, {&CLD, "CLD", IMPLICIT, 2}, {&CMP, "CMP", ABSOLUTEY, -4}, {0, "   ", 0, 0}, {0, "   ", 0, 0},
     {0, "   ", 0, 0}, {&CMP, "CMP", ABSOLUTEX, -4}, {&DEC, "DEC", ABSOLUTEX, 7}, {0, "   ", 0, 0}, {&CPX, "CPX", IMMEDIATE, 2}, {&SBC, "SBC", INDIRECTX, 6}, {0, "   ", 0, 0}, {0, "   ", 0, 0}, {&CPX, "CPX", ZEROPAGE, 3}, {&SBC, "SBC", ZEROPAGE, 3},
-    {&INC, "INC", ZEROPAGE, 5}, {0, "   ", 0, 0}, {&INX, "INX", IMPLICIT, 2}, {&SBC, "SBC", IMMEDIATE, 2}, {&NOP, "NOP", IMPLICIT, 2}, {0, "   ", 0, 0}, {&CMP, "CMP", ABSOLUTE, 4}, {&SBC, "SBC", ABSOLUTE, 4}, {&INC, "INC", ABSOLUTE, 6}, {0, "   ", 0, 0},
+    {&INC, "INC", ZEROPAGE, 5}, {0, "   ", 0, 0}, {&INX, "INX", IMPLICIT, 2}, {&SBC, "SBC", IMMEDIATE, 2}, {&NOP, "NOP", IMPLICIT, 2}, {0, "   ", 0, 0}, {&CPX, "CPX", ABSOLUTE, 4}, {&SBC, "SBC", ABSOLUTE, 4}, {&INC, "INC", ABSOLUTE, 6}, {0, "   ", 0, 0},
     {&BEQ, "BEQ", RELATIVE, 2}, {&SBC, "SBC", INDIRECTY, -5}, {0, "   ", 0, 0}, {0, "   ", 0, 0}, {0, "   ", 0, 0}, {&SBC, "SBC", ZEROPAGEX, 4}, {&INC, "INC", ZEROPAGEX, 6}, {0, "   ", 0, 0}, {&SED, "SED", IMPLICIT, 2}, {&SBC, "SBC", ABSOLUTEY, -4},
     // 250
     {0, "   ", 0, 0}, {0, "   ", 0, 0}, {0, "   ", 0, 0}, {&SBC, "SBC", ABSOLUTEX, -4}, {&INC, "INC", ABSOLUTEX, 7}, {0, "   ", 0, 0}
