@@ -87,9 +87,9 @@ void main(int argc, char **argv) {
 
         if (is_jump_or_branch(fn_name) == 0) {
             PC++;
-            if ((ZEROPAGEX == am) || (ZEROPAGEY == am) || (ABSOLUTE == am) || (ABSOLUTEX == am) || (ABSOLUTEY == am)) {
+            if ((ABSOLUTE == am) || (ABSOLUTEX == am) || (ABSOLUTEY == am)) {
                 PC += 2;
-            } else if ((ZEROPAGE == am) || (RELATIVE == am) || (INDIRECT == am) || (IMMEDIATE == am) || (INDIRECTX == am) || (INDIRECTY == am)) {
+            } else if ((ZEROPAGEX == am) || (ZEROPAGEY == am) || (ZEROPAGE == am) || (RELATIVE == am) || (INDIRECT == am) || (IMMEDIATE == am) || (INDIRECTX == am) || (INDIRECTY == am)) {
                 PC++;
             }
         }
