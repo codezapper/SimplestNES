@@ -123,8 +123,9 @@ uint16_t get_address_from_params(unsigned char first, unsigned char second, unsi
             return (high | low) + Y;
             // return RAM[first] | (RAM[first + 1] << 8) + Y;
         case INDIRECT:
-            //TODO: Implemented indirect for JMP
-            return 0;
+            high = second;
+            high <<= 8;
+            return ((RAM[(high | first) + 1] << 8) | RAM[(high | first)]);
     }
 }
 
@@ -250,8 +251,9 @@ void BEQ(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void BIT(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    unsigned char address = get_address_from_params(first, second, addr_mode);
-    int result = A & read_value(address, addr_mode);
+    uint16_t address = get_address_from_params(first, second, addr_mode);
+    unsigned char value = read_value(address, addr_mode);
+    int result = A & value;
 
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -261,12 +263,12 @@ void BIT(unsigned char first, unsigned char second, unsigned char addr_mode) {
         PS = set_bit(PS, ZF);
     }
 
-    if (check_bit(read_value(address, addr_mode), 7)) {
+    if (check_bit(value, 7)) {
         PS = set_bit(PS, NF);
     }
 
     if (addr_mode != IMMEDIATE) {
-        if (check_bit(read_value(address, addr_mode), 6)) {
+        if (check_bit(value, 6)) {
             PS = set_bit(PS, OF);
         }
     }
