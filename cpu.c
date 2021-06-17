@@ -75,13 +75,13 @@ void push_PC() {
     unsigned char high = PC >> 8;
     unsigned char low = (PC << 8) >> 8;
 
-    stack_push(low);
     stack_push(high);
+    stack_push(low);
 }
 
 void pop_PC() {
-    unsigned char high = stack_pop();
     unsigned char low = stack_pop();
+    unsigned char high = stack_pop();
 
     PC = high;
     PC <<= 8;
@@ -590,10 +590,10 @@ void PHA(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void PHP(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    // PS = set_bit(PS, B4);
-    PS = set_bit(PS, B5);
+    unsigned char value = set_bit(PS, B4);
+    // PS = set_bit(PS, B5);
 
-    stack_push(PS);
+    stack_push(value);
 }
 
 void PLA(unsigned char first, unsigned char second, unsigned char addr_mode) {
@@ -735,7 +735,7 @@ void RTI(unsigned char first, unsigned char second, unsigned char addr_mode) {
         PS = set_bit(PS, 7);
     }
 
-    PC = stack_pop();
+    pop_PC();
 }
 
 void RTS(unsigned char first, unsigned char second, unsigned char addr_mode) {

@@ -72,7 +72,7 @@ void main(int argc, char **argv) {
             printf("%x  %02x         %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, fn_name, A, X, Y, PS, SP, 0); 
         }
 
-        if (PC == 0xce1e) {
+        if (PC == 0xcead) {
             int a = 0;
         }
 
