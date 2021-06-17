@@ -15,6 +15,27 @@ extern struct ROM rom;
 extern struct addressing_data addressing[(0xFF) + 1];
 extern uint16_t PC;
 
+void log_to_screen(unsigned char opcode, unsigned char first, unsigned char second, char *fn_name) {
+    int am = addressing[opcode].addr_mode;
+
+    char s[1024];
+    if ((ZEROPAGEX == am) || (ZEROPAGEY == am) || (ABSOLUTEX == am) || (ABSOLUTEY == am) || (INDIRECTX == am) || (INDIRECTY == am)) {
+        sprintf(s, "%04x %02x %02x %02x %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, second, fn_name, A, X, Y, PS, SP, 0); 
+    } else if ((ZEROPAGE == am) || (ABSOLUTE == am) || (RELATIVE == am) || (INDIRECT == am) || (IMMEDIATE == am)) {
+        sprintf(s, "%04x %02x %02x    %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, fn_name, A, X, Y, PS, SP, 0); 
+    } else {
+        sprintf(s, "%04x %02x       %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, fn_name, A, X, Y, PS, SP, 0); 
+    }
+
+    for (int i = 0; s[i]!='\0'; i++) {
+        if(s[i] >= 'a' && s[i] <= 'z') {
+            s[i] = s[i] -32;
+        }
+    }
+
+    printf(s);
+}
+
 int is_jump_or_branch(unsigned char *fn_name) {
     if (
         // (strncmp(fn_name, "BCC", 3) != 0) &&
@@ -63,35 +84,13 @@ void main(int argc, char **argv) {
         memset(fn_name, 0, 4);
         strncpy(fn_name, addressing[opcode].name, 3);
 
-        int am = addressing[opcode].addr_mode;
-
-        char s[1024];
-        if ((ZEROPAGEX == am) || (ZEROPAGEY == am) || (ABSOLUTEX == am) || (ABSOLUTEY == am) || (INDIRECTX == am) || (INDIRECTY == am)) {
-            sprintf(s, "%04x %02x %02x %02x %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, second, fn_name, A, X, Y, PS, SP, 0); 
-        } else if ((ZEROPAGE == am) || (ABSOLUTE == am) || (RELATIVE == am) || (INDIRECT == am) || (IMMEDIATE == am)) {
-            sprintf(s, "%04x %02x %02x    %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, fn_name, A, X, Y, PS, SP, 0); 
-        } else {
-            sprintf(s, "%04x %02x       %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, fn_name, A, X, Y, PS, SP, 0); 
-        }
-
-        for (int i = 0; s[i]!='\0'; i++) {
-            if(s[i] >= 'a' && s[i] <= 'z') {
-                s[i] = s[i] -32;
-            }
-        }
-
-        printf(s);
+        log_to_screen(opcode, first, second, fn_name);
 
         void (*fun_ptr)(unsigned char, unsigned char, unsigned char) = addressing[opcode].opcode_fun;
         (*fun_ptr)(first, second, addressing[opcode].addr_mode);
 
         if (is_jump_or_branch(fn_name) == 0) {
-            PC++;
-            if ((ABSOLUTE == am) || (ABSOLUTEX == am) || (ABSOLUTEY == am)) {
-                PC += 2;
-            } else if ((ZEROPAGEX == am) || (ZEROPAGEY == am) || (ZEROPAGE == am) || (RELATIVE == am) || (INDIRECT == am) || (IMMEDIATE == am) || (INDIRECTX == am) || (INDIRECTY == am)) {
-                PC++;
-            }
+            PC += addressing[opcode].bytes;
         }
     }
     
