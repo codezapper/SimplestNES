@@ -112,16 +112,19 @@ uint16_t get_address_from_params(unsigned char first, unsigned char second, unsi
             address = (second << 8) |address;
             return address;
         case ABSOLUTEX:
-            return first + X;
+            address = first;
+            address = (second << 8) |address;
+            return address + X;
         case ABSOLUTEY:
-            return first + Y;
+            address = first;
+            address = (second << 8) |address;
+            return address + Y;
         case INDIRECTX:
             return (RAM[(first + X + 1) & 0xFF] << 8) | RAM[(first + X) & 0xFF];
         case INDIRECTY:
             high = RAM[(first + 1) & 0xFF] << 8;
             low = RAM[first & 0xFF];
             return (high | low) + Y;
-            // return RAM[first] | (RAM[first + 1] << 8) + Y;
         case INDIRECT:
             high = second;
             high <<= 8;
