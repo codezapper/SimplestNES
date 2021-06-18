@@ -57,3 +57,25 @@ void TSX(unsigned char first, unsigned char second, unsigned char addr_mode);
 void TXA(unsigned char first, unsigned char second, unsigned char addr_mode);
 void TXS(unsigned char first, unsigned char second, unsigned char addr_mode);
 void TYA(unsigned char first, unsigned char second, unsigned char addr_mode);
+
+// UNOFFICIAL OPCODES
+void AHX(unsigned char first, unsigned char second, unsigned char addr_mode);
+void ANC(unsigned char first, unsigned char second, unsigned char addr_mode);
+void ARR(unsigned char first, unsigned char second, unsigned char addr_mode);
+void AXA(unsigned char first, unsigned char second, unsigned char addr_mode)
+void AXS(unsigned char first, unsigned char second, unsigned char addr_mode);
+void DCM(unsigned char first, unsigned char second, unsigned char addr_mode);
+void ISB(unsigned char first, unsigned char second, unsigned char addr_mode);
+void KIL(unsigned char first, unsigned char second, unsigned char addr_mode);
+void LAS(unsigned char first, unsigned char second, unsigned char addr_mode);
+void LAX(unsigned char first, unsigned char second, unsigned char addr_mode);
+void OAL(unsigned char first, unsigned char second, unsigned char addr_mode);
+void RLA(unsigned char first, unsigned char second, unsigned char addr_mode);
+void RRA(unsigned char first, unsigned char second, unsigned char addr_mode);
+void SAX(unsigned char first, unsigned char second, unsigned char addr_mode);
+void SLO(unsigned char first, unsigned char second, unsigned char addr_mode);
+void SRE(unsigned char first, unsigned char second, unsigned char addr_mode);
+void SHX(unsigned char first, unsigned char second, unsigned char addr_mode);
+void SHY(unsigned char first, unsigned char second, unsigned char addr_mode);
+void TAS(unsigned char first, unsigned char second, unsigned char addr_mode);
+void XAA(unsigned char first, unsigned char second, unsigned char addr_mode);

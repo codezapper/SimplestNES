@@ -904,3 +904,202 @@ void TYA(unsigned char first, unsigned char second, unsigned char addr_mode) {
         PS = set_bit(PS, NF);
     }
 }
+
+// UNOFFICIAL OPCODES
+void AHX(unsigned char first, unsigned char second, unsigned char addr_mode) {
+}
+
+void ANC(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+    PS = clear_bit(PS, CF);
+
+    unsigned char value = read_value(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF;
+    int result = A & value;
+
+    if (0 == result) {
+        PS = set_bit(PS, ZF);
+    }
+
+    if (check_bit(result, 7)) {
+        PS = set_bit(PS, NF);
+    }
+
+    if (result < 0) {
+        PS = set_bit(PS, CF);
+    }
+}
+
+void ARR(unsigned char first, unsigned char second, unsigned char addr_mode) {
+}
+
+void AXA(unsigned char first, unsigned char second, unsigned char addr_mode) {
+}
+
+void AXS(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+
+    uint16_t address = get_address_from_params(first, second, addr_mode);
+    int result = A & X;
+
+    RAM[address] = result;
+
+    if (0 == result) {
+        PS = set_bit(PS, ZF);
+    }
+
+    if (check_bit(result, 7)) {
+        PS = set_bit(PS, NF);
+    }
+}
+
+void DCM(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    PS = clear_bit(PS, CF);
+
+    uint16_t address = get_address_from_params(first, second, addr_mode);
+
+    RAM[address] = RAM[address] - 1;
+
+    if (RAM[address] > 255) {
+        PS = set_bit(PS, CF);
+    }
+}
+
+void ISB(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    uint16_t address = get_address_from_params(first, second, addr_mode);
+    unsigned char value = read_value(address) + 1;
+
+    RAM[address] = value;
+
+    value = ~value + (1 - check_bit(PS, CF));
+
+    unsigned char result = value + A;
+
+    PS = clear_bit(PS, CF);
+    PS = clear_bit(PS, NF);
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, OF);
+
+    A = result;
+
+    if ((~(A ^ value) & (A ^ result) & 0x80) > 0) {
+        PS = set_bit(PS, OF);
+    }
+
+    if (0 == (result & 0xFF)) {
+        PS = set_bit(PS, ZF);
+    }
+    if (check_bit(result, 7)) {
+        PS = set_bit(PS, NF);
+    }
+
+    if (result > 255) {
+        PS = set_bit(PS, CF);
+    } else {
+        PS = clear_bit(PS, CF);
+    }
+}
+
+void KIL(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    printf("***KILL SIGNAL RECEIVED***\n");
+    exit(0);
+}
+
+void LAS(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    unsigned char value = SP & read_value(get_address_from_params(first, second, addr_mode));
+
+    A = value;
+    X = value;
+    SP = value;
+
+    if (0 == value) {
+        PS = set_bit(PS, ZF);
+    }
+    if (check_bit(value, 7)) {
+        PS = set_bit(PS, NF);
+    }
+}
+
+void LAX(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    unsigned char value = read_value(get_address_from_params(first, second, addr_mode));
+
+    A = value;
+    X = value;
+
+    if (0 == value) {
+        PS = set_bit(PS, ZF);
+    }
+    if (check_bit(value, 7)) {
+        PS = set_bit(PS, NF);
+    }
+}
+
+void OAL(unsigned char first, unsigned char second, unsigned char addr_mode) {
+}
+
+void RLA(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    ROL(first, second, addr_mode);
+    AND(first, second, addr_mode);
+}
+
+void RRA(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    ROR(first, second, addr_mode);
+    ADC(first, second, addr_mode);
+}
+
+void SAX(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    uint16_t address = get_address_from_params(first, second, addr_mode);
+
+    unsigned char value = A & X;
+
+    RAM[address] = value;
+
+    if (0 == value) {
+        PS = set_bit(PS, ZF);
+    }
+    if (check_bit(value, 7)) {
+        PS = set_bit(PS, NF);
+    }
+}
+
+void SLO(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    ASL(first, second, addr_mode);
+    ORA(first, second, addr_mode);
+}
+
+void SRE(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    LSR(first, second, addr_mode);
+    EOR(first, second, addr_mode);
+}
+
+void SHX(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    uint16_t address = get_address_from_params(first, second, addr_mode);
+    unsigned char value = ((address >> 8) & 0xFF) + 1;
+
+    unsigned char result = value & X;
+
+    RAM[address] = result;
+}
+
+void SHY(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    uint16_t address = get_address_from_params(first, second, addr_mode);
+    unsigned char value = ((address >> 8) & 0xFF) + 1;
+
+    unsigned char result = value & X;
+
+    RAM[address] = result;
+}
+
+void TAS(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    uint16_t address = get_address_from_params(first, second, addr_mode);
+    unsigned char value = ((address >> 8) & 0xFF) + 1;
+
+    uint16_t result = A & X;
+    SP = result & value;
+}
+
+void XAA(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    TXA(first, second, addr_mode);
+    AND(first, second, addr_mode);
+}
