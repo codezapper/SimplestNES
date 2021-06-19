@@ -931,9 +931,40 @@ void ANC(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void ARR(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    AND(unsigned char first, unsigned char second, unsigned char addr_mode);
+    ROR(unsigned char first, unsigned char second, unsigned char addr_mode);
+}
+
+void ASR(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    PS = clear_bit(PS, CF);
+    PS = clear_bit(PS, ZF);
+    PS = clear_bit(PS, NF);
+
+    uint16_t address = get_address_from_params(first, second, addr_mode);
+    unsigned char value = (unsigned char)(read_value(address, addr_mode) & 0xFF);
+
+    unsigned char result = (A & value) >> 1;
+
+    if (check_bit(result, 7) == 1) {
+        PS = set_bit(PS, CF);
+    }
+    
+    if (0 == value) {
+        PS = set_bit(PS, ZF);
+    }
+
+    if (check_bit(result, 7)) {
+        PS = set_bit(PS, NF);
+    }
+
+    A = value;
 }
 
 void AXA(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    uint16_t address = get_address_from_params(first, second, addr_mode);
+    int result = A & X;
+
+    RAM[address] = result & 7;
 }
 
 void AXS(unsigned char first, unsigned char second, unsigned char addr_mode) {
@@ -943,7 +974,7 @@ void AXS(unsigned char first, unsigned char second, unsigned char addr_mode) {
     uint16_t address = get_address_from_params(first, second, addr_mode);
     int result = A & X;
 
-    RAM[address] = result;
+    X = result - (read_value(RAM[address]) & 0xFF);
 
     if (0 == result) {
         PS = set_bit(PS, ZF);

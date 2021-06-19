@@ -62,6 +62,8 @@ void TYA(unsigned char first, unsigned char second, unsigned char addr_mode);
 void AHX(unsigned char first, unsigned char second, unsigned char addr_mode);
 void ANC(unsigned char first, unsigned char second, unsigned char addr_mode);
 void ARR(unsigned char first, unsigned char second, unsigned char addr_mode);
+void ASL(unsigned char first, unsigned char second, unsigned char addr_mode);
+void ASR(unsigned char first, unsigned char second, unsigned char addr_mode);
 void AXA(unsigned char first, unsigned char second, unsigned char addr_mode)
 void AXS(unsigned char first, unsigned char second, unsigned char addr_mode);
 void DCM(unsigned char first, unsigned char second, unsigned char addr_mode);
