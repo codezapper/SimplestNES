@@ -931,8 +931,8 @@ void ANC(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void ARR(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    AND(unsigned char first, unsigned char second, unsigned char addr_mode);
-    ROR(unsigned char first, unsigned char second, unsigned char addr_mode);
+    AND(first, second, addr_mode);
+    ROR(first, second, addr_mode);
 }
 
 void ASR(unsigned char first, unsigned char second, unsigned char addr_mode) {
@@ -974,7 +974,7 @@ void AXS(unsigned char first, unsigned char second, unsigned char addr_mode) {
     uint16_t address = get_address_from_params(first, second, addr_mode);
     int result = A & X;
 
-    X = result - (read_value(RAM[address]) & 0xFF);
+    X = result - (read_value(RAM[address], addr_mode) & 0xFF);
 
     if (0 == result) {
         PS = set_bit(PS, ZF);
@@ -999,7 +999,7 @@ void DCM(unsigned char first, unsigned char second, unsigned char addr_mode) {
 
 void ISB(unsigned char first, unsigned char second, unsigned char addr_mode) {
     uint16_t address = get_address_from_params(first, second, addr_mode);
-    unsigned char value = read_value(address) + 1;
+    unsigned char value = read_value(address, addr_mode) + 1;
 
     RAM[address] = value;
 
@@ -1038,7 +1038,7 @@ void KIL(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void LAS(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    unsigned char value = SP & read_value(get_address_from_params(first, second, addr_mode));
+    unsigned char value = SP & read_value(get_address_from_params(first, second, addr_mode), addr_mode);
 
     A = value;
     X = value;
@@ -1053,7 +1053,7 @@ void LAS(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void LAX(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    unsigned char value = read_value(get_address_from_params(first, second, addr_mode));
+    unsigned char value = read_value(get_address_from_params(first, second, addr_mode), addr_mode);
 
     A = value;
     X = value;
