@@ -18,39 +18,30 @@ extern uint16_t PC;
 void log_to_screen(unsigned char opcode, unsigned char first, unsigned char second, char *fn_name) {
     int am = addressing[opcode].addr_mode;
 
-    char s[1024];
-    if ((ZEROPAGEX == am) || (ZEROPAGEY == am) || (ABSOLUTEX == am) || (ABSOLUTEY == am) || (INDIRECTX == am) || (INDIRECTY == am)) {
-        sprintf(s, "%04x %02x %02x %02x %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, second, fn_name, A, X, Y, PS, SP, 0); 
-    } else if ((ZEROPAGE == am) || (ABSOLUTE == am) || (RELATIVE == am) || (INDIRECT == am) || (IMMEDIATE == am)) {
-        sprintf(s, "%04x %02x %02x    %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, fn_name, A, X, Y, PS, SP, 0); 
+    char log_line[1024];
+    if (addressing[opcode].bytes == 3) {
+        sprintf(log_line, "%04x %02x %02x %02x %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, second, fn_name, A, X, Y, PS, SP, 0); 
+    } else if (addressing[opcode].bytes == 2) {
+        sprintf(log_line, "%04x %02x %02x    %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, fn_name, A, X, Y, PS, SP, 0); 
     } else {
-        sprintf(s, "%04x %02x       %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, fn_name, A, X, Y, PS, SP, 0); 
+        sprintf(log_line, "%04x %02x       %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, fn_name, A, X, Y, PS, SP, 0); 
     }
 
-    for (int i = 0; s[i]!='\0'; i++) {
-        if(s[i] >= 'a' && s[i] <= 'z') {
-            s[i] = s[i] -32;
+    for (int i = 0; log_line[i]!='\0'; i++) {
+        if(log_line[i] >= 'a' && log_line[i] <= 'z') {
+            log_line[i] = log_line[i] -32;
         }
     }
 
-    printf(s);
+    printf(log_line);
 }
 
-int is_jump_or_branch(unsigned char *fn_name) {
+int is_jump(unsigned char *fn_name) {
     if (
-        // (strncmp(fn_name, "BCC", 3) != 0) &&
-        // (strncmp(fn_name, "BCS", 3) != 0) &&
-        // (strncmp(fn_name, "BEQ", 3) != 0) &&
-        // (strncmp(fn_name, "BMI", 3) != 0) &&
-        // (strncmp(fn_name, "BNE", 3) != 0) &&
-        // (strncmp(fn_name, "BPL", 3) != 0) &&
         (strncmp(fn_name, "BRK", 3) != 0) &&
-        // (strncmp(fn_name, "BVC", 3) != 0) &&
-        // (strncmp(fn_name, "BVS", 3) != 0) &&
         (strncmp(fn_name, "JMP", 3) != 0) &&
         (strncmp(fn_name, "JSR", 3) != 0) &&
         (strncmp(fn_name, "RTI", 3) != 0)
-        // (strncmp(fn_name, "RTS", 3) != 0)
         ) {
         return 0;
     }
@@ -89,7 +80,7 @@ void main(int argc, char **argv) {
         void (*fun_ptr)(unsigned char, unsigned char, unsigned char) = addressing[opcode].opcode_fun;
         (*fun_ptr)(first, second, addressing[opcode].addr_mode);
 
-        if ((is_jump_or_branch(fn_name) == 0) && (PC > 0)) {
+        if ((is_jump(fn_name) == 0) && (PC > 0)) {
             PC += addressing[opcode].bytes;
         }
     }

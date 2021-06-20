@@ -173,6 +173,8 @@ void ADC(unsigned char first, unsigned char second, unsigned char addr_mode) {
     unsigned char value = read_value(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF;
     uint16_t result = A + value + check_bit(PS, CF);
 
+    PS = clear_bit(PS, CF);
+
     if ((~(A ^ value) & (A ^ result) & 0x80) > 0) {
         PS = set_bit(PS, OF);
     }
@@ -186,8 +188,6 @@ void ADC(unsigned char first, unsigned char second, unsigned char addr_mode) {
 
     if (result > 255) {
         PS = set_bit(PS, CF);
-    } else {
-        PS = clear_bit(PS, CF);
     }
 
     A = (unsigned char)(result & 0xFF);
@@ -308,12 +308,8 @@ void BPL(unsigned char first, unsigned char second, unsigned char addr_mode) {
 
 void BRK(unsigned char first, unsigned char second, unsigned char addr_mode) {
     push_PC();
-    // PS = set_bit(PS, B4);
     PS = set_bit(PS, B5);
     PS = set_bit(PS, ID);
-
-    // unsigned char value = PS;
-    // value = set_bit(value, B4);
 
     stack_push(PS);
 
@@ -615,7 +611,6 @@ void PHA(unsigned char first, unsigned char second, unsigned char addr_mode) {
 
 void PHP(unsigned char first, unsigned char second, unsigned char addr_mode) {
     unsigned char value = set_bit(PS, B4);
-    // PS = set_bit(PS, B5);
 
     stack_push(value);
 }
@@ -798,10 +793,9 @@ void SBC(unsigned char first, unsigned char second, unsigned char addr_mode) {
         PS = set_bit(PS, NF);
     }
 
+    PS = clear_bit(PS, CF);
     if (result > 255) {
         PS = set_bit(PS, CF);
-    } else {
-        PS = clear_bit(PS, CF);
     }
 
     A = (unsigned char)(result & 0xFF);
@@ -906,9 +900,6 @@ void TYA(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 // UNOFFICIAL OPCODES
-void AHX(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    int a = 0;
-}
 
 void ALR(unsigned char first, unsigned char second, unsigned char addr_mode) {
     AND(first, second, addr_mode);

@@ -59,7 +59,6 @@ void TXS(unsigned char first, unsigned char second, unsigned char addr_mode);
 void TYA(unsigned char first, unsigned char second, unsigned char addr_mode);
 
 // UNOFFICIAL OPCODES
-void AHX(unsigned char first, unsigned char second, unsigned char addr_mode);
 void ALR(unsigned char first, unsigned char second, unsigned char addr_mode);
 void ANC(unsigned char first, unsigned char second, unsigned char addr_mode);
 void ARR(unsigned char first, unsigned char second, unsigned char addr_mode);
