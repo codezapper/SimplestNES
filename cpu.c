@@ -102,11 +102,11 @@ uint16_t get_address_from_params(unsigned char first, unsigned char second, unsi
         case RELATIVE:
             return first;
         case ZEROPAGE:
-            return first;
+            return first % 256;
         case ZEROPAGEX:
             return (first + X) % 256;
         case ZEROPAGEY:
-            return first + Y;
+            return (first + Y) % 256;
         case ABSOLUTE:
             address = first;
             address = (second << 8) |address;
@@ -907,57 +907,66 @@ void TYA(unsigned char first, unsigned char second, unsigned char addr_mode) {
 
 // UNOFFICIAL OPCODES
 void AHX(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    int a = 0;
+}
+
+void ALR(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    AND(first, second, addr_mode);
+    LSR(first, second, ACCUMULATOR);
 }
 
 void ANC(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    PS = clear_bit(PS, ZF);
-    PS = clear_bit(PS, NF);
-    PS = clear_bit(PS, CF);
-
-    unsigned char value = read_value(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF;
-    int result = A & value;
-
-    if (0 == result) {
-        PS = set_bit(PS, ZF);
-    }
-
-    if (check_bit(result, 7)) {
-        PS = set_bit(PS, NF);
-    }
-
-    if (result < 0) {
-        PS = set_bit(PS, CF);
+    AND(first, second, addr_mode);
+    if (check_bit(PS, NF)) {
+        set_bit(PC, CF);
+    } else {
+        clear_bit(PC, CF);
     }
 }
 
 void ARR(unsigned char first, unsigned char second, unsigned char addr_mode) {
     AND(first, second, addr_mode);
-    ROR(first, second, addr_mode);
-}
-
-void ASR(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    PS = clear_bit(PS, CF);
-    PS = clear_bit(PS, ZF);
-    PS = clear_bit(PS, NF);
-
     uint16_t address = get_address_from_params(first, second, addr_mode);
-    unsigned char value = (unsigned char)(read_value(address, addr_mode) & 0xFF);
+    int value = read_value(address, addr_mode);
+    int prev_value = value;
 
-    unsigned char result = (A & value) >> 1;
+    value >>= 1;
 
-    if (check_bit(result, 7) == 1) {
-        PS = set_bit(PS, CF);
+    if (check_bit(PS, CF) == 1) {
+        value = set_bit(value, 7);
+    } else {
+        value = clear_bit(value, 7);
     }
-    
+
+    if (check_bit(prev_value, 6) == 1) {
+        PS = set_bit(PS, CF);
+    } else {
+        PS = clear_bit(PS, CF);
+    }
+
+    if (check_bit(prev_value, 6) ^ check_bit(prev_value, 5)) {
+        PS = set_bit(PS, OF);
+    } else {
+        PS = clear_bit(PS, OF);
+    }
+
+    if (check_bit(value, 7) == 1) {
+        PS = set_bit(PS, NF);
+    } else {
+        PS = clear_bit(PS, NF);
+    }
+
     if (0 == value) {
         PS = set_bit(PS, ZF);
+    } else {
+        PS = clear_bit(PS, ZF);
     }
 
-    if (check_bit(result, 7)) {
-        PS = set_bit(PS, NF);
+    if (ACCUMULATOR == addr_mode) {
+        A = value;
+    } else {
+        RAM[address] = value;
     }
-
-    A = value;
 }
 
 void AXA(unsigned char first, unsigned char second, unsigned char addr_mode) {
@@ -985,51 +994,14 @@ void AXS(unsigned char first, unsigned char second, unsigned char addr_mode) {
     }
 }
 
-void DCM(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    PS = clear_bit(PS, CF);
-
-    uint16_t address = get_address_from_params(first, second, addr_mode);
-
-    RAM[address] = RAM[address] - 1;
-
-    if (RAM[address] > 255) {
-        PS = set_bit(PS, CF);
-    }
+void DCP(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    DEC(first, second, addr_mode);
+    CMP(first, second, addr_mode);
 }
 
-void ISB(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    uint16_t address = get_address_from_params(first, second, addr_mode);
-    unsigned char value = read_value(address, addr_mode) + 1;
-
-    RAM[address] = value;
-
-    value = ~value + (1 - check_bit(PS, CF));
-
-    unsigned char result = value + A;
-
-    PS = clear_bit(PS, CF);
-    PS = clear_bit(PS, NF);
-    PS = clear_bit(PS, ZF);
-    PS = clear_bit(PS, OF);
-
-    A = result;
-
-    if ((~(A ^ value) & (A ^ result) & 0x80) > 0) {
-        PS = set_bit(PS, OF);
-    }
-
-    if (0 == (result & 0xFF)) {
-        PS = set_bit(PS, ZF);
-    }
-    if (check_bit(result, 7)) {
-        PS = set_bit(PS, NF);
-    }
-
-    if (result > 255) {
-        PS = set_bit(PS, CF);
-    } else {
-        PS = clear_bit(PS, CF);
-    }
+void ISC(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    INC(first, second, addr_mode);
+    SBC(first, second, addr_mode);
 }
 
 void KIL(unsigned char first, unsigned char second, unsigned char addr_mode) {
@@ -1038,6 +1010,9 @@ void KIL(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void LAS(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    PS = clear_bit(PS, NF);
+    PS = clear_bit(PS, ZF);
+
     unsigned char value = SP & read_value(get_address_from_params(first, second, addr_mode), addr_mode);
 
     A = value;
@@ -1053,20 +1028,12 @@ void LAS(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void LAX(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    unsigned char value = read_value(get_address_from_params(first, second, addr_mode), addr_mode);
-
-    A = value;
-    X = value;
-
-    if (0 == value) {
-        PS = set_bit(PS, ZF);
-    }
-    if (check_bit(value, 7)) {
-        PS = set_bit(PS, NF);
-    }
+    LDA(first, second, addr_mode);
+    TAX(first, second, addr_mode);
 }
 
 void OAL(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    int a = 0;
 }
 
 void RLA(unsigned char first, unsigned char second, unsigned char addr_mode) {
@@ -1080,18 +1047,7 @@ void RRA(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void SAX(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    uint16_t address = get_address_from_params(first, second, addr_mode);
-
-    unsigned char value = A & X;
-
-    RAM[address] = value;
-
-    if (0 == value) {
-        PS = set_bit(PS, ZF);
-    }
-    if (check_bit(value, 7)) {
-        PS = set_bit(PS, NF);
-    }
+    RAM[get_address_from_params(first, second, addr_mode)] = A & X;
 }
 
 void SLO(unsigned char first, unsigned char second, unsigned char addr_mode) {

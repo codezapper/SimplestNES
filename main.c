@@ -89,11 +89,8 @@ void main(int argc, char **argv) {
         void (*fun_ptr)(unsigned char, unsigned char, unsigned char) = addressing[opcode].opcode_fun;
         (*fun_ptr)(first, second, addressing[opcode].addr_mode);
 
-        if (is_jump_or_branch(fn_name) == 0) {
+        if ((is_jump_or_branch(fn_name) == 0) && (PC > 0)) {
             PC += addressing[opcode].bytes;
         }
     }
-    
-    printf("0x02: %02x\n", RAM[0x02]);
-    printf("0x03: %03x\n", RAM[0x03]);
 }
