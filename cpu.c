@@ -98,7 +98,7 @@ void ADC(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, NF);
     PS = clear_bit(PS, OF);
 
-    unsigned char value = cpu_read(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF;
+    unsigned char value = cpu_read(first, second, addr_mode) & 0xFF;
     uint16_t result = A + value + check_bit(PS, CF);
 
     PS = clear_bit(PS, CF);
@@ -125,7 +125,7 @@ void AND(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    A &= cpu_read(get_address_from_params(first, second, addr_mode), addr_mode);
+    A &= cpu_read(first, second, addr_mode);
     if (0 == A) {
         PS = set_bit(PS, ZF);
     }
@@ -139,8 +139,7 @@ void ASL(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    uint16_t address = get_address_from_params(first, second, addr_mode);
-    unsigned char value = (unsigned char)(cpu_read(address, addr_mode) & 0xFF);
+    unsigned char value = (unsigned char)(cpu_read(first, second, addr_mode) & 0xFF);
 
     if (check_bit(value, 7) == 1) {
         PS = set_bit(PS, CF);
@@ -183,8 +182,7 @@ void BEQ(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void BIT(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    uint16_t address = get_address_from_params(first, second, addr_mode);
-    unsigned char value = cpu_read(address, addr_mode);
+    unsigned char value = cpu_read(first, second, addr_mode);
     int result = A & value;
 
     PS = clear_bit(PS, ZF);
@@ -277,7 +275,7 @@ void CMP(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    unsigned char value = (unsigned char)(cpu_read(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF);
+    unsigned char value = (unsigned char)(cpu_read(first, second, addr_mode) & 0xFF);
 
     if (A >= value) {
         PS = set_bit(PS, CF);
@@ -297,7 +295,7 @@ void CPX(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    unsigned char value = (unsigned char)(cpu_read(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF);
+    unsigned char value = (unsigned char)(cpu_read(first, second, addr_mode) & 0xFF);
 
     if (X >= value) {
         PS = set_bit(PS, CF);
@@ -316,7 +314,7 @@ void CPY(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, CF);
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
-    unsigned char value = (unsigned char)(cpu_read(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF);
+    unsigned char value = (unsigned char)(cpu_read(first, second, addr_mode) & 0xFF);
 
     if (Y >= value) {
         PS = set_bit(PS, CF);
@@ -332,13 +330,13 @@ void CPY(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void DEC(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    unsigned char value = (unsigned char)(cpu_read(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF) - 1;
+    unsigned char value = (unsigned char)(cpu_read(first, second, addr_mode) & 0xFF) - 1;
 
-    RAM[get_address_from_params(first, second, addr_mode)] = value;
+    cpu_write(first, second, addr_mode, value);
 
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
-    if (0 == cpu_read(get_address_from_params(first, second, addr_mode), addr_mode)) {
+    if (0 == cpu_read(first, second, addr_mode)) {
         PS = set_bit(PS, ZF);
     }
 
@@ -376,7 +374,7 @@ void DEY(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void EOR(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    A ^= cpu_read(get_address_from_params(first, second, addr_mode), addr_mode);
+    A ^= cpu_read(first, second, addr_mode);
 
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -390,9 +388,9 @@ void EOR(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void INC(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    unsigned char value = cpu_read(get_address_from_params(first, second, addr_mode), addr_mode) + 1;
+    unsigned char value = cpu_read(first, second, addr_mode) + 1;
 
-    RAM[get_address_from_params(first, second, addr_mode)] = value;
+    cpu_write(first, second, addr_mode, value);
 
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -448,7 +446,7 @@ void LDA(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    A = cpu_read(get_address_from_params(first, second, addr_mode), addr_mode);
+    A = cpu_read(first, second, addr_mode);
     if (0 == A) {
         PS = set_bit(PS, ZF);
     }
@@ -461,7 +459,7 @@ void LDX(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    X  = cpu_read(get_address_from_params(first, second, addr_mode), addr_mode);
+    X  = cpu_read(first, second, addr_mode);
     if (0 == X) {
         PS = set_bit(PS, ZF);
     }
@@ -474,7 +472,7 @@ void LDY(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    Y  = cpu_read(get_address_from_params(first, second, addr_mode), addr_mode);
+    Y  = cpu_read(first, second, addr_mode);
     if (0 == Y) {
         PS = set_bit(PS, ZF);
     }
@@ -488,8 +486,7 @@ void LSR(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    uint16_t address = get_address_from_params(first, second, addr_mode);
-    unsigned char value = (unsigned char)(cpu_read(address, addr_mode) & 0xFF);
+    unsigned char value = (unsigned char)(cpu_read(first, second, addr_mode) & 0xFF);
 
     if (check_bit(value, 0) == 1) {
         PS = set_bit(PS, CF);
@@ -511,7 +508,7 @@ void NOP(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void ORA(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    A |= cpu_read(get_address_from_params(first, second, addr_mode), addr_mode);
+    A |= cpu_read(first, second, addr_mode);
 
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -581,8 +578,7 @@ void PLP(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void ROL(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    uint16_t address = get_address_from_params(first, second, addr_mode);
-    int value = cpu_read(address, addr_mode);
+    int value = cpu_read(first, second, addr_mode);
     int prev_value = value;
 
     value <<= 1;
@@ -615,8 +611,7 @@ void ROL(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void ROR(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    uint16_t address = get_address_from_params(first, second, addr_mode);
-    int value = cpu_read(address, addr_mode);
+    int value = cpu_read(first, second, addr_mode);
     int prev_value = value;
 
     value >>= 1;
@@ -690,7 +685,7 @@ void SBC(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, NF);
     PS = clear_bit(PS, OF);
 
-    unsigned char value = ~cpu_read(get_address_from_params(first, second, addr_mode), addr_mode) & 0xFF;
+    unsigned char value = ~cpu_read(first, second, addr_mode) & 0xFF;
     uint16_t result = A + value + check_bit(PS, CF);
 
     if ((~(A ^ value) & (A ^ result) & 0x80) > 0) {
@@ -725,15 +720,15 @@ void SEI(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void STA(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    RAM[get_address_from_params(first, second, addr_mode)] = A;
+    cpu_write(first, second, addr_mode, A);
 }
 
 void STX(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    RAM[get_address_from_params(first, second, addr_mode)] = X;
+    cpu_write(first, second, addr_mode, X);
 }
 
 void STY(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    RAM[get_address_from_params(first, second, addr_mode)] = Y;
+    cpu_write(first, second, addr_mode, Y);
 }
 
 void TAX(unsigned char first, unsigned char second, unsigned char addr_mode) {
@@ -828,8 +823,7 @@ void ANC(unsigned char first, unsigned char second, unsigned char addr_mode) {
 
 void ARR(unsigned char first, unsigned char second, unsigned char addr_mode) {
     AND(first, second, addr_mode);
-    uint16_t address = get_address_from_params(first, second, addr_mode);
-    int value = cpu_read(address, addr_mode);
+    int value = cpu_read(first, second, addr_mode);
     int prev_value = value;
 
     value >>= 1;
@@ -868,7 +862,6 @@ void ARR(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void AXA(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    uint16_t address = get_address_from_params(first, second, addr_mode);
     unsigned char value = A & X;
 
     cpu_write(first, second, addr_mode, value);
@@ -878,10 +871,9 @@ void AXS(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
 
-    uint16_t address = get_address_from_params(first, second, addr_mode);
     int result = A & X;
 
-    X = result - (cpu_read(RAM[address], addr_mode) & 0xFF);
+    X = result - (cpu_read(first, second, addr_mode) & 0xFF);
 
     if (0 == result) {
         PS = set_bit(PS, ZF);
@@ -911,7 +903,7 @@ void LAS(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, NF);
     PS = clear_bit(PS, ZF);
 
-    unsigned char value = SP & cpu_read(get_address_from_params(first, second, addr_mode), addr_mode);
+    unsigned char value = SP & cpu_read(first, second, addr_mode);
 
     A = value;
     X = value;
@@ -945,7 +937,7 @@ void RRA(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void SAX(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    RAM[get_address_from_params(first, second, addr_mode)] = A & X;
+    cpu_write(first, second, addr_mode, A & X);
 }
 
 void SLO(unsigned char first, unsigned char second, unsigned char addr_mode) {

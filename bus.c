@@ -52,7 +52,9 @@ uint16_t get_address_from_params(unsigned char first, unsigned char second, unsi
     }
 }
 
-unsigned char cpu_read(uint16_t value, unsigned char addr_mode) {
+unsigned char cpu_read(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    uint16_t value = get_address_from_params(first, second, addr_mode);
+
     switch (addr_mode) {
         case ACCUMULATOR:
         case IMMEDIATE:
