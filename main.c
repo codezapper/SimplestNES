@@ -61,7 +61,10 @@ void main(int argc, char **argv) {
     unsigned char value = 0;
     unsigned char first;
     unsigned char second;
-    PC = 0xC000;
+
+    PC = 0xC000; // Test mode, use log compare
+    // JMP(0xFC, 0xFF, INDIRECT);
+    // PC = (RAM[0xFFFD] << 8) | RAM[0xFFFC];
     while (PC > 0) {
         opcode = RAM[PC];
         if (addressing[opcode].cycles == 0) {
