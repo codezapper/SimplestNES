@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "addressing.h"
+#include "ppu.h"
 #include "rom.h"
 
 extern unsigned char RAM[0xFFFF];
@@ -52,8 +53,8 @@ void main(int argc, char **argv) {
     init_ram();
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_writes/cpu_dummy_writes_oam.nes");
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_reads.nes");
-    // load_rom("/home/gabriele/Downloads/bf.nes");
-    load_rom("/home/gabriele/Downloads/cpu_test/nestest.nes");
+    load_rom("/home/gabriele/Downloads/bf.nes");
+    // load_rom("/home/gabriele/Downloads/cpu_test/nestest.nes");
     // printf("%d\n", rom.header.prg_blocks);
     // printf("%s %d %d %d %d %d %d %d\n", rom.header.nes, rom.header.prg_blocks, rom.header.chr_blocks, rom.header.flags_6, rom.header.flags_7, rom.header.flags_8, rom.header.flags_9, rom.header.flags_10, rom.header.padding[5]);
 
@@ -62,9 +63,9 @@ void main(int argc, char **argv) {
     unsigned char first;
     unsigned char second;
 
-    PC = 0xC000; // Test mode, use log compare
+    // PC = 0xC000; // Test mode, use log compare
     // JMP(0xFC, 0xFF, INDIRECT);
-    // PC = (RAM[0xFFFD] << 8) | RAM[0xFFFC];
+    PC = (RAM[0xFFFD] << 8) | RAM[0xFFFC];
     while (PC > 0) {
         opcode = RAM[PC];
         if (addressing[opcode].cycles == 0) {
@@ -86,5 +87,7 @@ void main(int argc, char **argv) {
         if ((is_jump(fn_name) == 0) && (PC > 0)) {
             PC += addressing[opcode].bytes;
         }
+
+        ppu_clock();
     }
 }

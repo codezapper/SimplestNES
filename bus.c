@@ -1,5 +1,8 @@
 #include "bus.h"
 
+unsigned char count_sta = 0;
+uint16_t requested_address = 0;
+
 uint16_t get_address_from_params(unsigned char first, unsigned char second, unsigned char addr_mode) {
     uint16_t high;
     uint16_t low;
@@ -69,6 +72,9 @@ unsigned char cpu_read(unsigned char first, unsigned char second, unsigned char 
         case INDIRECTX:
         case INDIRECTY:
         case INDIRECT:
+            if ((value >= 0) && (value <= 0x1FFFF)) {
+                value &= 0x07FF;
+            }
             return RAM[value];
     }
 }
@@ -77,14 +83,31 @@ void cpu_write(unsigned char first, unsigned char second, unsigned char addr_mod
     if (ACCUMULATOR == addr_mode) {
         A = value;
     } else {
-        RAM[get_address_from_params(first, second, addr_mode)] = value;
+        uint16_t address = get_address_from_params(first, second, addr_mode);
+        // If it's a PPU register, they're mirrored up to 0x3FFF
+        if ((address >= 0x2000) && (address <= 0x3FFF)) {
+            address &= 0x0007;
+                ppu_write(address, value);
+        }
+        RAM[address] = value;
     }
 }
 
-unsigned char ppu_read(uint16_t address, unsigned char addr_mode) {
-    
+unsigned char ppu_read(uint16_t address) {
+    return RAM[requested_address];
 }
 
-void ppu_write(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    
+void ppu_write(uint16_t address, unsigned char value) {
+    switch (address) {
+        case 0x00:
+            
+        case 0x06:
+            if (count_sta == 0) {
+                requested_address = value << 8;
+                count_sta = 1;
+            } else {
+                requested_address |= value;
+                count_sta = 0;
+            }
+    }
 }

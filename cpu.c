@@ -230,10 +230,10 @@ void BPL(unsigned char first, unsigned char second, unsigned char addr_mode) {
 
 void BRK(unsigned char first, unsigned char second, unsigned char addr_mode) {
     push_PC();
+    stack_push(PS);
+
     PS = set_bit(PS, B5);
     PS = set_bit(PS, ID);
-
-    stack_push(PS);
 
     PC = (RAM[0xFFFF] << 8) | RAM[0xFFFE];
 }
@@ -979,4 +979,28 @@ void TAS(unsigned char first, unsigned char second, unsigned char addr_mode) {
 void XAA(unsigned char first, unsigned char second, unsigned char addr_mode) {
     TXA(first, second, addr_mode);
     AND(first, second, addr_mode);
+}
+
+// INTERRUPTS
+
+void NMI() {
+    push_PC();
+    stack_push(PS);
+
+    PS = set_bit(PS, B5);
+    PS = set_bit(PS, ID);
+
+    PC = (RAM[0xFFFB] << 8) | RAM[0xFFFA];
+}
+
+void IRQ() {
+    if (check_bit(PS, ID) == 0) {
+        push_PC();
+        stack_push(PS);
+
+        PS = set_bit(PS, B5);
+        PS = set_bit(PS, ID);
+
+        PC = (RAM[0xFFFF] << 8) | RAM[0xFFFE];
+    }
 }
