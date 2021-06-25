@@ -2,8 +2,10 @@
 #include <stdint.h>
 #include <string.h>
 #include "addressing.h"
+#include "cpu.h"
 #include "ppu.h"
 #include "rom.h"
+#include "utils.h"
 
 extern unsigned char RAM[0xFFFF];
 extern uint8_t A;
@@ -13,8 +15,8 @@ extern uint8_t PS;
 extern uint16_t SP;
 
 extern struct ROM rom;
-extern struct addressing_data addressing[(0xFF) + 1];
 extern uint16_t PC;
+extern unsigned char interrupt_occurred;
 
 void log_to_screen(unsigned char opcode, unsigned char first, unsigned char second, char *fn_name) {
     int am = addressing[opcode].addr_mode;
@@ -49,12 +51,25 @@ int is_jump(unsigned char *fn_name) {
     return 1;
 }
 
+int cpu_interrupt_count = 0;
+
+int must_handle_interrupt() {
+    if ((interrupt_occurred == NMI_INT) || ((interrupt_occurred == IRQ_INT) && (check_bit(PS, ID) == 0))){
+        if (cpu_interrupt_count >= 6) {
+            cpu_interrupt_count = 0;
+        } else {
+            cpu_interrupt_count++;
+        }
+    }
+    return 0;
+}
+
 void main(int argc, char **argv) {
     init_ram();
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_writes/cpu_dummy_writes_oam.nes");
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_reads.nes");
-    load_rom("/home/gabriele/Downloads/bf.nes");
-    // load_rom("/home/gabriele/Downloads/cpu_test/nestest.nes");
+    // load_rom("/home/gabriele/Downloads/bf.nes");
+    load_rom("/home/gabriele/Downloads/cpu_test/nestest.nes");
     // printf("%d\n", rom.header.prg_blocks);
     // printf("%s %d %d %d %d %d %d %d\n", rom.header.nes, rom.header.prg_blocks, rom.header.chr_blocks, rom.header.flags_6, rom.header.flags_7, rom.header.flags_8, rom.header.flags_9, rom.header.flags_10, rom.header.padding[5]);
 
@@ -63,10 +78,17 @@ void main(int argc, char **argv) {
     unsigned char first;
     unsigned char second;
 
-    // PC = 0xC000; // Test mode, use log compare
+    PC = 0xC000; // Test mode, use log compare
     // JMP(0xFC, 0xFF, INDIRECT);
-    PC = (RAM[0xFFFD] << 8) | RAM[0xFFFC];
+    // PC = (RAM[0xFFFD] << 8) | RAM[0xFFFC];
     while (PC > 0) {
+        if (must_handle_interrupt(interrupt_occurred)) {
+            if (interrupt_occurred == NMI_INT) {
+                NMI();
+            } else {
+                IRQ();
+            }
+        }
         opcode = RAM[PC];
         if (addressing[opcode].cycles == 0) {
             PC++;

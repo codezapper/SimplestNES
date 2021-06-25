@@ -36,6 +36,7 @@
 
 #include "utils.h"
 #include "bus.h"
+#include "cpu.h"
 
 unsigned char RAM[0xFFFF];
 
@@ -45,15 +46,6 @@ unsigned char A = 0;
 unsigned char X = 0;
 unsigned char Y = 0;
 unsigned char PS = 0x24;
-
-#define CF  0
-#define ZF  1
-#define ID  2
-#define DM  3
-#define B4  4
-#define B5  5
-#define OF  6
-#define NF  7
 
 int cycles_cnt = 0;
 unsigned char extra_value = 0;

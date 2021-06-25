@@ -46,6 +46,7 @@ unsigned char ppuaddr;
 unsigned char ppudata;
 unsigned char oamdma;
 
+unsigned char interrupt_occurred = 0;
 
 void write_ppuctrl(unsigned char value) {
     ppuctrl = value;

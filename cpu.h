@@ -1,3 +1,15 @@
+#define NMI_INT     1
+#define IRQ_INT     2
+
+#define CF  0
+#define ZF  1
+#define ID  2
+#define DM  3
+#define B4  4
+#define B5  5
+#define OF  6
+#define NF  7
+
 void init_ram();
 uint16_t read_value_from_params(unsigned char first, unsigned char second, unsigned char addr_mode);
 void write_value_from_params(unsigned char first, unsigned char second, unsigned char value, unsigned char addr_mode);
@@ -80,3 +92,8 @@ void SHX(unsigned char first, unsigned char second, unsigned char addr_mode);
 void SHY(unsigned char first, unsigned char second, unsigned char addr_mode);
 void TAS(unsigned char first, unsigned char second, unsigned char addr_mode);
 void XAA(unsigned char first, unsigned char second, unsigned char addr_mode);
+
+// INTERRUPT
+
+void NMI();
+void IRQ();
