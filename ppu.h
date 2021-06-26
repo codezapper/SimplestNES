@@ -8,4 +8,5 @@
 #define PPUDATA 	0x2007
 #define OAMDMA 	    0x4014
 
+void init_ppu();
 void ppu_clock();

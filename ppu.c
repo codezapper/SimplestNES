@@ -26,6 +26,7 @@
 // $02, $06, $0A, $0E 	Sprite attribute
 // $03, $07, $0B, $0F 	Sprite X coordinate 
 
+#include <SDL.h>
 #include <string.h>
 
 #include "ppu.h"
@@ -88,6 +89,49 @@ unsigned char *read_ppudata() {
     int a = 0;
 }
 
-void ppu_clock() {
+void ppu_clock(int allowed_cycles) {
     
+}
+
+const int SCREEN_WIDTH = 256;
+const int SCREEN_HEIGHT = 240;
+
+SDL_Window* gWindow = NULL;
+SDL_Renderer *gRenderer;
+SDL_Surface* gScreenSurface = NULL;
+SDL_Surface* gGameSurface = NULL;
+
+
+unsigned char init_sdl()
+{
+	unsigned char success = 1;
+	if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
+	{
+		printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
+		success = 0;
+	}
+	else
+	{
+		SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &gWindow, &gRenderer );
+        gScreenSurface = SDL_GetWindowSurface( gWindow );
+	}
+
+	return success;
+}
+
+void free_ppu()
+{
+	SDL_FreeSurface( gGameSurface );
+	gGameSurface = NULL;
+	SDL_DestroyWindow( gWindow );
+	gWindow = NULL;
+	SDL_Quit();
+}
+
+void init_ppu() {
+	if( !init_sdl() )
+	{
+		printf( "Failed to initialize!\n" );
+	}
+    memcpy(VRAM, rom.chr_rom, 0x2000);
 }

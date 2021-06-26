@@ -66,6 +66,7 @@ int must_handle_interrupt() {
 
 void main(int argc, char **argv) {
     init_ram();
+    init_ppu();
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_writes/cpu_dummy_writes_oam.nes");
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_reads.nes");
     // load_rom("/home/gabriele/Downloads/bf.nes");
@@ -110,6 +111,6 @@ void main(int argc, char **argv) {
             PC += addressing[opcode].bytes;
         }
 
-        ppu_clock();
+        ppu_clock(addressing[opcode].cycles * 3);
     }
 }
