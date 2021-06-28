@@ -42,21 +42,33 @@ extern unsigned char RAM[0xFFFF];
 unsigned char VRAM[0xFFFF];
 unsigned char palette_table[32];
 
-unsigned char ppuctrl;
-unsigned char ppumask;
-unsigned char ppustatus;
-unsigned char oamaddr;
-unsigned char oamdata[64*4];
+unsigned char ppuctrl = 0;
+unsigned char ppumask = 0;
+unsigned char ppustatus = 0;
+unsigned char oamaddr = 0;
+unsigned char oamdata; //[64*4];
 unsigned char ppuscroll;
 unsigned char ppuaddr;
 unsigned char ppudata;
 unsigned char oamdma;
+
+unsigned char count_sta = 0;
+uint16_t ppu_address = 0;
 
 unsigned char _data[_DATA_SIZE];
 
 unsigned char interrupt_occurred = 0;
 
 SDL_Texture *texture = NULL;
+
+const int SCREEN_WIDTH = 256;
+const int SCREEN_HEIGHT = 240;
+
+SDL_Window* gWindow = NULL;
+SDL_Renderer *gRenderer;
+SDL_Surface* gScreenSurface = NULL;
+SDL_Surface* gGameSurface = NULL;
+
 
 unsigned char PALETTE[0x40][3] = {
    {0x80, 0x80, 0x80}, {0x00, 0x3D, 0xA6}, {0x00, 0x12, 0xB0}, {0x44, 0x00, 0x96}, {0xA1, 0x00, 0x5E},
@@ -76,7 +88,7 @@ unsigned char PALETTE[0x40][3] = {
 
 
 void write_ppuctrl(unsigned char value) {
-    ppuctrl = value;
+	ppuctrl = value;
 }
 
 void write_ppumask(unsigned char value) {
@@ -95,38 +107,37 @@ unsigned char *read_oamdata() {
     return oamdata;
 }
 
-void write_oamdata(unsigned char *value) {
-    memcpy(oamdata, value, sizeof(oamdata));
+void write_oamdata(unsigned char value) {
+    oamdata = value;
 }
 
-void write_ppudata(unsigned char *value) {
-    int a = 0;
+void write_ppudata(unsigned char value) {
+    ppudata = value;
 }
 
-void write_ppuscroll(unsigned char *value) {
-    int a = 0;
+void write_ppuscroll(unsigned char value) {
+    ppuscroll = value;
 }
 
-void write_ppuaddress(unsigned char *value) {
-    int a = 0;
+void write_ppuaddress(unsigned char value) {
+	if (count_sta == 0) {
+		ppu_address = value << 8;
+		count_sta = 1;
+	} else {
+		ppu_address |= value;
+		count_sta = 0;
+	}
 }
 
-unsigned char *read_ppudata() {
-    int a = 0;
+unsigned char get_ppudata() {
+	unsigned char value = VRAM[ppu_address];
+	ppu_address++;
+    return value;
 }
 
 void ppu_clock(int allowed_cycles) {
     
 }
-
-const int SCREEN_WIDTH = 256;
-const int SCREEN_HEIGHT = 240;
-
-SDL_Window* gWindow = NULL;
-SDL_Renderer *gRenderer;
-SDL_Surface* gScreenSurface = NULL;
-SDL_Surface* gGameSurface = NULL;
-
 
 unsigned char init_sdl()
 {
@@ -155,9 +166,32 @@ void free_ppu()
 }
 
 void set_pixel(unsigned char x, unsigned char y, int value) { //unsigned char r, unsigned char g, unsigned char b) {
-	unsigned char R = PALETTE[value][0];
-	unsigned char G = PALETTE[value][1];
-	unsigned char B = PALETTE[value][2];
+	unsigned char R;
+	unsigned char G;
+	unsigned char B;
+
+	switch (value) {
+		case 0: 
+			R = PALETTE[0x01][0];
+			G = PALETTE[0x01][1];
+			B = PALETTE[0x01][2];
+			break;
+		case 1: 
+			R = PALETTE[0x23][0];
+			G = PALETTE[0x23][1];
+			B = PALETTE[0x23][2];
+			break;
+		case 2: 
+			R = PALETTE[0x27][0];
+			G = PALETTE[0x27][1];
+			B = PALETTE[0x27][2];
+			break;
+		case 3: 
+			R = PALETTE[0x30][0];
+			G = PALETTE[0x30][1];
+			B = PALETTE[0x30][2];
+			break;
+	}
 
     SDL_SetRenderDrawColor(gRenderer, 255, R, G, B);
 	SDL_RenderDrawPoint(gRenderer, x, y);
@@ -173,12 +207,11 @@ void set_pixel(unsigned char x, unsigned char y, int value) { //unsigned char r,
 }
 
 void show_tile(int bank, int tile_n, int start_x, int start_y) {
-	int tile[16];
 	for (int y = 0; y <= 7; y++) {
 		unsigned char upper = VRAM[bank + tile_n * 16 + y];
 		unsigned char lower = VRAM[bank + tile_n * 16 + y + 8];
 
-		for (int x = 0; x <= 7; x++) {
+		for (int x = 7; x >= 0; x--) {
 			int value = ((1 & upper) << 1) | (1 & lower);
 			upper >>= 1;
 			lower >>= 1;
@@ -198,7 +231,7 @@ void init_ppu() {
 	int tile_index = 0;
 	for (int y = 0; y < HEIGHT; y+=8) {
 		for (int x = 0; x < WIDTH; x+=8) {
-			show_tile(1, tile_index, x, y);
+			show_tile(0, tile_index, x, y);
 			tile_index++;
 		}
 	}

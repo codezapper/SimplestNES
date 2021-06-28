@@ -18,6 +18,8 @@ extern struct ROM rom;
 extern uint16_t PC;
 extern unsigned char interrupt_occurred;
 
+int cycles = 0;
+
 void log_to_screen(unsigned char opcode, unsigned char first, unsigned char second, char *fn_name) {
     int am = addressing[opcode].addr_mode;
 
@@ -65,10 +67,13 @@ int must_handle_interrupt() {
 }
 
 void main(int argc, char **argv) {
+    init_ram();
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_writes/cpu_dummy_writes_oam.nes");
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_reads.nes");
-    load_rom("/home/gabriele/Downloads/bf.nes");
-    // load_rom("/home/gabriele/Downloads/cpu_test/nestest.nes");
+    // load_rom("/home/gabriele/Downloads/dk.nes");
+    // load_rom("/home/gabriele/Downloads/bf.nes");
+    load_rom("/home/gabriele/Downloads/cpu_test/nestest.nes");
+    // load_rom("/home/gabriele/Downloads/pm.nes");
     // printf("%d\n", rom.header.prg_blocks);
     // printf("%s %d %d %d %d %d %d %d\n", rom.header.nes, rom.header.prg_blocks, rom.header.chr_blocks, rom.header.flags_6, rom.header.flags_7, rom.header.flags_8, rom.header.flags_9, rom.header.flags_10, rom.header.padding[5]);
 
@@ -77,20 +82,19 @@ void main(int argc, char **argv) {
     unsigned char first;
     unsigned char second;
 
-    init_ram();
     init_ppu();
 
     // PC = 0xC000; // Test mode, use log compare
     // JMP(0xFC, 0xFF, INDIRECT);
     PC = (RAM[0xFFFD] << 8) | RAM[0xFFFC];
     while (PC > 0) {
-        if (must_handle_interrupt(interrupt_occurred)) {
-            if (interrupt_occurred == NMI_INT) {
-                NMI();
-            } else {
-                IRQ();
-            }
-        }
+        // if (must_handle_interrupt(interrupt_occurred)) {
+        //     if (interrupt_occurred == NMI_INT) {
+        //         NMI();
+        //     } else {
+        //         IRQ();
+        //     }
+        // }
         opcode = RAM[PC];
         if (addressing[opcode].cycles == 0) {
             PC++;
@@ -113,5 +117,12 @@ void main(int argc, char **argv) {
         }
 
         ppu_clock(addressing[opcode].cycles * 3);
+
+        cycles += addressing[opcode].cycles;
+
+        if (cycles >= 30000) {
+            cycles = 0;
+            NMI();
+        }
     }
 }

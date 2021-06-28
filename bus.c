@@ -1,7 +1,8 @@
 #include "bus.h"
+#include "ppu.h"
 
-unsigned char count_sta = 0;
-uint16_t requested_address = 0;
+extern unsigned char VRAM[0xFFFF];
+
 
 uint16_t get_address_from_params(unsigned char first, unsigned char second, unsigned char addr_mode) {
     uint16_t high;
@@ -72,10 +73,15 @@ unsigned char cpu_read(unsigned char first, unsigned char second, unsigned char 
         case INDIRECTX:
         case INDIRECTY:
         case INDIRECT:
-            if ((value >= 0) && (value <= 0x1FFFF)) {
+            if ((value >= 0) && (value <= 0x1FFF)) {
                 value &= 0x07FF;
             }
-            return RAM[value];
+
+            if (((value >= 0x2000) && (value <= 0x2007)) || (value == 0x4014)) {
+                return ppu_read(value);
+            } else {
+                return RAM[value];
+            }
     }
 }
 
@@ -85,29 +91,45 @@ void cpu_write(unsigned char first, unsigned char second, unsigned char addr_mod
     } else {
         uint16_t address = get_address_from_params(first, second, addr_mode);
         // If it's a PPU register, they're mirrored up to 0x3FFF
-        if ((address >= 0x2000) && (address <= 0x3FFF)) {
-            address &= 0x0007;
-                ppu_write(address, value);
+        if (((address >= 0x2000) && (address <= 0x2007)) || (address == 0x4014)) {
+            ppu_write(address, value);
+        } else {
+            RAM[address] = value;
         }
-        RAM[address] = value;
     }
 }
 
 unsigned char ppu_read(uint16_t address) {
-    return RAM[requested_address];
+    switch (address) {
+        case 0x2002:
+            return get_ppustatus();
+        case 0x2007:
+            return get_ppudata();
+
+    }
+    return VRAM[address];
 }
 
 void ppu_write(uint16_t address, unsigned char value) {
     switch (address) {
-        case 0x00:
-            
-        case 0x06:
-            if (count_sta == 0) {
-                requested_address = value << 8;
-                count_sta = 1;
-            } else {
-                requested_address |= value;
-                count_sta = 0;
-            }
+        case 0x2000:
+            write_ppuctrl(value);
+            break;
+        case 0x2001:
+            write_ppumask(value);
+            break;
+        case 0x2002:
+            break;
+        case 0x2003:
+            write_oamaddr(value);
+            break;
+        case 0x2004:
+            write_oamdata(value);
+            break;
+        case 0x2005:
+            break;
+        case 0x2006:
+            write_ppuaddress(value);
+            break;
     }
 }
