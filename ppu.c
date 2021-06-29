@@ -33,16 +33,17 @@
 #include "ppu.h"
 #include "rom.h"
 
-#define WIDTH		256
-#define HEIGHT		240
-#define _DATA_SIZE	WIDTH*HEIGHT*3
+#define WIDTH				256
+#define HEIGHT				240
+#define _DATA_SIZE			WIDTH*HEIGHT*3
+#define CYCLES_PER_LINE		341
 
 extern struct ROM rom;
 extern unsigned char RAM[0xFFFF];
 unsigned char VRAM[0xFFFF];
 unsigned char palette_table[32];
 
-unsigned char ppuctrl = 0;
+unsigned char ppuctrl = 0x80;
 unsigned char ppumask = 0;
 unsigned char ppustatus = 0;
 unsigned char oamaddr = 0;
@@ -58,6 +59,15 @@ uint16_t ppu_address = 0;
 unsigned char _data[_DATA_SIZE];
 
 unsigned char interrupt_occurred = 0;
+
+struct Tile {
+	unsigned char sprite[8][8];
+	char scroll_x;
+	char scroll_y;
+	int palette_id;
+};
+
+struct Tile background[1024];
 
 SDL_Texture *texture = NULL;
 
@@ -96,6 +106,7 @@ void write_ppumask(unsigned char value) {
 }
 
 unsigned char get_ppustatus() {
+	// clear_vblank();
     return ppustatus;
 }
 
@@ -113,10 +124,15 @@ void write_oamdata(unsigned char value) {
 
 void write_ppudata(unsigned char value) {
     ppudata = value;
+	ppuaddr++;
 }
 
 void write_ppuscroll(unsigned char value) {
     ppuscroll = value;
+}
+
+void write_ppustatus(unsigned char value) {
+    ppustatus = value;
 }
 
 void write_ppuaddress(unsigned char value) {
@@ -129,14 +145,105 @@ void write_ppuaddress(unsigned char value) {
 	}
 }
 
-unsigned char get_ppudata() {
+unsigned char read_ppudata() {
 	unsigned char value = VRAM[ppu_address];
 	ppu_address++;
     return value;
 }
 
-void ppu_clock(int allowed_cycles) {
-    
+void clear_screen() {
+	SDL_SetRenderDrawColor(gRenderer, 255, 0, 0, 0);
+    SDL_RenderClear(gRenderer);
+}
+
+void set_vblank() {
+	ppustatus |= 0x80;
+}
+
+void clear_vblank() {
+	ppustatus &= 0x7F;
+}
+
+int can_generate_nmi() {
+	if (ppuctrl & 0x80) {
+		return 1;
+	}
+	return 0;
+}
+
+int current_line = 0;
+int ppu_cycles = 0;
+
+void render() {
+	for (int i = 0; i <= sizeof(background); i++) {
+		for (int y = 0; y < 8; y++) {
+			for (int x = 0; x < 8; x++) {
+				if (background[i].sprite[x][y] != 0) {
+					int color = background[i].sprite[x][y];
+					SDL_SetRenderDrawColor(gRenderer, PALETTE[color][0], PALETTE[color][1], PALETTE[color][2], 255);
+					SDL_RenderDrawPoint(gRenderer, x, y);
+				}
+			}
+		}
+	}
+	SDL_RenderPresent(gRenderer);
+}
+
+void ppu_clock(int cpu_cycles) {
+	int cycles = ppu_cycles + cpu_cycles;
+	ppu_cycles = cycles;
+    if (cycles < CYCLES_PER_LINE) {
+		return;
+	}
+
+	if (current_line == 0) {
+		clear_screen();
+		// build_sprites();
+	}
+
+	if (cycles >= CYCLES_PER_LINE) {
+		ppu_cycles = cycles - CYCLES_PER_LINE;
+		current_line++;
+
+	// 	if this.hasSpriteHit() {
+	// 		this.setSpriteHit()
+	// 	}
+		if ((current_line <= 240) && (current_line % 8 == 0)) {
+			build_background();
+			render();
+		}
+
+		if (current_line == 241) {
+			set_vblank();
+			if (can_generate_nmi() > 0) {
+				interrupt_occurred = NMI_INT;
+			}
+		}
+
+		if (current_line == 262) {
+			clear_vblank();
+	// 		this.clearSpriteHit()
+			current_line = 0;
+			interrupt_occurred = 0;
+
+	// 		background := Background{}
+	// 		if this.isBackgroundEnable() {
+	// 			background = this.Background
+	// 		}
+	// 		sprites := []SpriteWithAttribute{}
+	// 		if this.isSpriteEnable() {
+	// 			sprites = this.Sprites
+	// 		}
+	// 		this.RenderingData = RenderingData{
+	// 			Palette:    this.Palette.Read(),
+	// 			Background: background,
+	// 			Sprites:    sprites,
+	// 		}
+	// 		return true
+		}
+	}
+
+	return;
 }
 
 unsigned char init_sdl()
@@ -193,7 +300,7 @@ void set_pixel(unsigned char x, unsigned char y, int value) { //unsigned char r,
 			break;
 	}
 
-    SDL_SetRenderDrawColor(gRenderer, 255, R, G, B);
+    SDL_SetRenderDrawColor(gRenderer, R, G, B, 255);
 	SDL_RenderDrawPoint(gRenderer, x, y);
 
 	// TODO: Render using a texture and updating it
@@ -228,12 +335,123 @@ void init_ppu() {
     memcpy(VRAM, rom.chr_rom, 0x2000);
 	memset(_data, 0, _DATA_SIZE);
     // texture = SDL_CreateTexture(gRenderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, 8, 8);
-	int tile_index = 0;
-	for (int y = 0; y < HEIGHT; y+=8) {
-		for (int x = 0; x < WIDTH; x+=8) {
-			show_tile(0, tile_index, x, y);
-			tile_index++;
+	// int tile_index = 0;
+	// for (int y = 0; y < HEIGHT; y+=8) {
+	// 	for (int x = 0; x < WIDTH; x+=8) {
+	// 		show_tile(0, tile_index, x, y);
+	// 		tile_index++;
+	// 	}
+	// }
+	// SDL_RenderPresent(gRenderer);
+	ppuctrl= 0x80;
+}
+
+unsigned char get_block_id(int x, int y) {
+	return ((x % 4) / 2) + ((y % 4) / 2) * 2;
+}
+
+unsigned char get_sprite_id(int x, int y, int offset) {
+	int tile_id = y * 32 + x;
+	int sprite_address = mirror_down_sprite_address(tile_id + offset);
+	return VRAM[sprite_address];
+}
+
+int mirror_down_sprite_address(int addr) {
+	// TODO: Check horizontal mirroring
+	if ((addr >= 0x0400 && addr < 0x0800) || (addr >= 0x0c00)) {
+		return addr - 0x400;
+	}
+	return addr;
+}
+
+void build_background() {
+	int y = current_line / 8;
+	int bg_counter = 0;
+
+	for (int x = 0; x < 32 + 1; x++) {
+		// Add scroll here
+		struct Tile tile = build_tile(x, y, 0);
+		background[bg_counter] = tile;
+		bg_counter++;
+	}
+}
+
+unsigned char get_attribute(int x, int y, int offset) {
+	int address = (x / 4) + ((y / 4) * 8) + 0x03c0 + offset;
+	return VRAM[address];
+}
+
+
+// func (this *Ppu) readCharacterRAM(addr uint16) byte {
+// 	return this.Bus.ReadByPpu(addr)
+// }
+
+// func (this *Ppu) writeCharacterRAM(addr uint16, data byte) {
+// 	this.Bus.WriteByPpu(addr, data)
+// }
+
+unsigned char **build_sprite(int sprite_id, int offset) {
+	unsigned char **sprite = (unsigned char **)malloc(64);
+	for (int i = 0; i < 16; i++) {
+		for (int j = 0; j < 8; j++) {
+			int address = sprite_id * 16 + i + offset;
+			int ram = VRAM[address];
+			if ((ram & (0x80 >> j)) != 0) {
+				sprite[i % 8][j] += (0x01 << (i / 8));
+			}
 		}
 	}
-	SDL_RenderPresent(gRenderer);
+	return sprite;
 }
+
+int background_table_offset() {
+	if ((ppuctrl & 0x10) > 0) {
+		return 0x1000;
+	}
+	return 0x0000;
+}
+
+struct Tile build_tile(int x, int y, int offset) {
+	// INFO see. http://hp.vector.co.jp/authors/VA042397/nes/ppu.html
+	unsigned char block_id = get_block_id(x, y);
+	unsigned char sprite_id = get_sprite_id(x, y, offset);
+	unsigned char attr = get_attribute(x, y, offset);
+	unsigned char palette_id = (attr >> (block_id * 2)) & 0x03;
+	unsigned char sprite[8][8];
+
+	struct Tile returned_tile;
+
+	memcpy(&returned_tile.sprite, build_sprite(sprite_id, background_table_offset()), 64);
+	returned_tile.scroll_x = 0;
+	returned_tile.scroll_y = 0;
+	returned_tile.palette_id = palette_id;
+
+	return returned_tile;
+}
+
+
+// func (this *Ppu) buildSprites() {
+// 	var offset uint16 = 0x0000
+// 	var sprite Sprite
+
+// 	if (this.Registers[0] & 0x08) > 0 {
+// 		offset = 0x1000
+// 	}
+
+// 	for i := 0 ; i < SPRITES_NUMBER ; i = (i+4)  {
+// 		// INFO: Offset sprite Y position, because First and last 8line is not rendered.
+
+// 		y := this.SpriteRam.Read(uint16(i))
+// 		if y < 8 {
+// 			return
+// 		}
+
+// 		spriteId := this.SpriteRam.Read(uint16(i+1))
+// 		attr := this.SpriteRam.Read(uint16(i+2))
+// 		x := this.SpriteRam.Read(uint16(i+3))
+// 		sprite = this.buildSprite(spriteId, offset)
+// 		this.Sprites[i/4] = NewStripeWithAttribute(sprite, x, y, attr, spriteId)
+// 		//fmt.Println(sprite)
+// 	}
+// }
+

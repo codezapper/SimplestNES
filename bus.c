@@ -2,7 +2,7 @@
 #include "ppu.h"
 
 extern unsigned char VRAM[0xFFFF];
-
+extern int cycles;
 
 uint16_t get_address_from_params(unsigned char first, unsigned char second, unsigned char addr_mode) {
     uint16_t high;
@@ -91,6 +91,7 @@ void cpu_write(unsigned char first, unsigned char second, unsigned char addr_mod
     } else {
         uint16_t address = get_address_from_params(first, second, addr_mode);
         // If it's a PPU register, they're mirrored up to 0x3FFF
+        // Maybe 0x2000-0x3FFF ?
         if (((address >= 0x2000) && (address <= 0x2007)) || (address == 0x4014)) {
             ppu_write(address, value);
         } else {
@@ -101,35 +102,45 @@ void cpu_write(unsigned char first, unsigned char second, unsigned char addr_mod
 
 unsigned char ppu_read(uint16_t address) {
     switch (address) {
-        case 0x2002:
+        case PPUSTATUS:
             return get_ppustatus();
-        case 0x2007:
-            return get_ppudata();
-
+        case PPUDATA:
+            return read_ppudata();
+        case OAMDMA:
+            break;
     }
     return VRAM[address];
 }
 
 void ppu_write(uint16_t address, unsigned char value) {
     switch (address) {
-        case 0x2000:
-            write_ppuctrl(value);
+        case PPUCTRL:
+            if (cycles >= 30000) {
+                write_ppuctrl(value);
+            }
             break;
-        case 0x2001:
+        case PPUMASK:
             write_ppumask(value);
             break;
-        case 0x2002:
+        case PPUSTATUS:
+            write_ppustatus(value);
             break;
-        case 0x2003:
+        case OAMADDR:
             write_oamaddr(value);
             break;
-        case 0x2004:
+        case OAMDATA:
             write_oamdata(value);
             break;
-        case 0x2005:
+        case PPUSCROLL:
+            write_ppuscroll(value);
             break;
-        case 0x2006:
+        case PPUADDR:
             write_ppuaddress(value);
+            break;
+        case PPUDATA:
+            write_ppudata(value);
+            break;
+        case OAMDMA:
             break;
     }
 }
