@@ -103,7 +103,7 @@ void cpu_write(unsigned char first, unsigned char second, unsigned char addr_mod
 unsigned char ppu_read(uint16_t address) {
     switch (address) {
         case PPUSTATUS:
-            return get_ppustatus();
+            return read_ppustatus();
         case PPUDATA:
             return read_ppudata();
         case OAMDMA:

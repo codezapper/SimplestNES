@@ -73,6 +73,7 @@ void main(int argc, char **argv) {
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_reads.nes");
     // load_rom("/home/gabriele/Downloads/dk.nes");
     // load_rom("/home/gabriele/Downloads/bf.nes");
+    // load_rom("/home/gabriele/Downloads/color_test.nes");
     load_rom("/home/gabriele/Downloads/cpu_test/nestest.nes");
     // load_rom("/home/gabriele/Downloads/ppu_read_buffer/test_ppu_read_buffer.nes");
     // load_rom("/home/gabriele/Downloads/scanline.nes");
@@ -125,8 +126,7 @@ void main(int argc, char **argv) {
         }
 
         cycles += addressing[opcode].cycles;
-
-        ppu_clock(cycles * 3);
+        ppu_clock(addressing[opcode].cycles);
 
         // if (cycles >= 30000) {
         //     cycles = 0;

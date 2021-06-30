@@ -32,6 +32,7 @@
 
 #include "ppu.h"
 #include "rom.h"
+#include "utils.h"
 
 #define WIDTH				256
 #define HEIGHT				240
@@ -45,7 +46,7 @@ unsigned char palette_table[32];
 
 unsigned char ppuctrl = 0x80;
 unsigned char ppumask = 0;
-unsigned char ppustatus = 0;
+unsigned char ppustatus = 0x80;
 unsigned char oamaddr = 0;
 unsigned char oamdata; //[64*4];
 unsigned char ppuscroll;
@@ -105,8 +106,8 @@ void write_ppumask(unsigned char value) {
     ppumask = value;
 }
 
-unsigned char get_ppustatus() {
-	// clear_vblank();
+unsigned char read_ppustatus() {
+	clear_vblank();
     return ppustatus;
 }
 
@@ -114,17 +115,25 @@ void write_oamaddr(unsigned char value) {
     oamaddr = value;
 }
 
-unsigned char *read_oamdata() {
-    return oamdata;
+unsigned char read_oamdata() {
+	if (check_bit(ppustatus, 7) == 0) {
+		oamaddr++;
+	}
+    return VRAM[oamaddr];
 }
 
 void write_oamdata(unsigned char value) {
-    oamdata = value;
+    VRAM[oamaddr] = value;
+	oamaddr++;
 }
 
 void write_ppudata(unsigned char value) {
     ppudata = value;
-	ppuaddr++;
+	if (check_bit(ppuctrl, 2) == 1) {
+		ppuaddr += 32;
+	} else {
+		ppuaddr++;
+	}
 }
 
 void write_ppuscroll(unsigned char value) {
@@ -157,11 +166,12 @@ void clear_screen() {
 }
 
 void set_vblank() {
-	ppustatus |= 0x80;
+	ppustatus = set_bit(ppustatus, 7);
 }
 
 void clear_vblank() {
-	ppustatus &= 0x7F;
+	ppustatus = clear_bit(ppustatus, 7);
+	count_sta = 0;
 }
 
 int can_generate_nmi() {
@@ -190,6 +200,42 @@ void render() {
 }
 
 void ppu_clock(int cpu_cycles) {
+	if (current_line == 0) {
+		clear_screen();
+	}
+
+	int end_cycle = ppu_cycles + (cpu_cycles * 3);
+	for (; ppu_cycles < end_cycle; ppu_cycles++) {
+		if (ppu_cycles + cpu_cycles >= CYCLES_PER_LINE) {
+			current_line++;
+		}
+
+		if (current_line == 241) {
+			set_vblank();
+			if (can_generate_nmi() > 0) {
+				interrupt_occurred = NMI_INT;
+			}
+		}
+
+		if (current_line == 262) {
+			clear_vblank();
+			current_line = 0;
+			interrupt_occurred = 0;
+		}
+	}
+
+	if (VRAM[0x2001] != 0) {
+		printf("-------------\n");
+		for (int y = 0; y < 30; y++) {
+			for (int x = 0; x < 32; x++) {
+				printf("%03d ", VRAM[0x2000 + x + (y * 32)]);
+			}
+			printf("\n");
+		}
+	}
+}
+
+void old_ppu_clock(int cpu_cycles) {
 	int cycles = ppu_cycles + cpu_cycles;
 	ppu_cycles = cycles;
     if (cycles < CYCLES_PER_LINE) {
@@ -332,8 +378,15 @@ void init_ppu() {
 	{
 		printf( "Failed to initialize!\n" );
 	}
-    memcpy(VRAM, rom.chr_rom, 0x2000);
+    memcpy(VRAM, rom.chr_rom, 0x1FFF);
 	memset(_data, 0, _DATA_SIZE);
+
+	// for (int y = 0; y < 30; y++) {
+	// 	for (int x = 0; x < 32; x++) {
+	// 		printf("%03d ", VRAM[(y * 32) + x]);
+	// 	}
+	// 	printf("\n");
+	// }
     // texture = SDL_CreateTexture(gRenderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, 8, 8);
 	// int tile_index = 0;
 	// for (int y = 0; y < HEIGHT; y+=8) {
