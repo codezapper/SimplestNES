@@ -10,8 +10,6 @@ struct ROM rom;
 
 void load_rom(char *filename) {
     FILE *rom_file = fopen(filename, "rb");
-
- 
     fread(&rom.header, 16, 1, rom_file);
 
     unsigned char mapper1 = rom.header.flags_6 >> 4;
@@ -63,4 +61,15 @@ void load_rom(char *filename) {
     // }
 
     fclose(rom_file);
+
+    // FILE *rom_file_chr = fopen(filename, "rb");
+    // for (int i = 0; i < (0x10 + (0x4000 * rom.header.prg_blocks)); i++) {
+    //     // rom.chr_rom[i] = fgetc(rom_file_chr);
+    //     fgetc(rom_file_chr);
+    // }
+    // for (int j = 0; j < (8192 * rom.header.chr_blocks); j++) {
+    //     rom.chr_rom[j] = fgetc(rom_file_chr);
+    // }
+    // fclose(rom_file_chr);
+
 }

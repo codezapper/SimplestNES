@@ -28,3 +28,4 @@ struct Tile build_tile(int x, int y, int offset);
 int mirror_down_sprite_address(int addr);
 void build_background();
 int background_table_offset();
+void write_dma(unsigned char address, unsigned char value);

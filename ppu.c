@@ -36,11 +36,15 @@
 
 #define WIDTH				256
 #define HEIGHT				240
+
 #define _DATA_SIZE			WIDTH*HEIGHT*3
 #define CYCLES_PER_LINE		341
+#define OAMSIZE				64*4
 
 extern struct ROM rom;
 extern unsigned char RAM[0xFFFF];
+extern int cycles;
+
 unsigned char VRAM[0xFFFF];
 unsigned char palette_table[32];
 
@@ -48,13 +52,14 @@ unsigned char ppuctrl = 0x80;
 unsigned char ppumask = 0;
 unsigned char ppustatus = 0x80;
 unsigned char oamaddr = 0;
-unsigned char oamdata; //[64*4];
+unsigned char oamdata[OAMSIZE];
 unsigned char ppuscroll;
 unsigned char ppuaddr;
 unsigned char ppudata;
 unsigned char oamdma;
 
-unsigned char count_sta = 0;
+unsigned char t_address = 0;
+unsigned char t_scroll = 0;
 uint16_t ppu_address = 0;
 
 unsigned char _data[_DATA_SIZE];
@@ -68,17 +73,13 @@ struct Tile {
 	int palette_id;
 };
 
+int total_cycles = 0;
+
 struct Tile background[1024];
 
-SDL_Texture *texture = NULL;
-
-const int SCREEN_WIDTH = 256;
-const int SCREEN_HEIGHT = 240;
-
-SDL_Window* gWindow = NULL;
-SDL_Renderer *gRenderer;
-SDL_Surface* gScreenSurface = NULL;
-SDL_Surface* gGameSurface = NULL;
+SDL_Renderer *renderer, *renderer_nt, *renderer_oam;
+SDL_Window *window, *window_nt, *window_oam;
+SDL_Texture *texture, *texture_nt, *texture_oam;
 
 
 unsigned char PALETTE[0x40][3] = {
@@ -119,12 +120,16 @@ unsigned char read_oamdata() {
 	if (check_bit(ppustatus, 7) == 0) {
 		oamaddr++;
 	}
-    return VRAM[oamaddr];
+    return oamdata[oamaddr];
 }
 
 void write_oamdata(unsigned char value) {
-    VRAM[oamaddr] = value;
+    oamdata[oamaddr] = value;
 	oamaddr++;
+}
+
+void write_dma(unsigned char address, unsigned char value) {
+	oamdata[address] = value;
 }
 
 void write_ppudata(unsigned char value) {
@@ -145,13 +150,9 @@ void write_ppustatus(unsigned char value) {
 }
 
 void write_ppuaddress(unsigned char value) {
-	if (count_sta == 0) {
-		ppu_address = value << 8;
-		count_sta = 1;
-	} else {
-		ppu_address |= value;
-		count_sta = 0;
-	}
+	ppu_address = t_address << 8;
+	t_address = value;
+	ppu_address |= t_address;
 }
 
 unsigned char read_ppudata() {
@@ -161,8 +162,8 @@ unsigned char read_ppudata() {
 }
 
 void clear_screen() {
-	SDL_SetRenderDrawColor(gRenderer, 255, 0, 0, 0);
-    SDL_RenderClear(gRenderer);
+	SDL_SetRenderDrawColor(renderer, 255, 0, 0, 0);
+    SDL_RenderClear(renderer);
 }
 
 void set_vblank() {
@@ -171,7 +172,7 @@ void set_vblank() {
 
 void clear_vblank() {
 	ppustatus = clear_bit(ppustatus, 7);
-	count_sta = 0;
+	t_address = 0;
 }
 
 int can_generate_nmi() {
@@ -190,48 +191,35 @@ void render() {
 			for (int x = 0; x < 8; x++) {
 				if (background[i].sprite[x][y] != 0) {
 					int color = background[i].sprite[x][y];
-					SDL_SetRenderDrawColor(gRenderer, PALETTE[color][0], PALETTE[color][1], PALETTE[color][2], 255);
-					SDL_RenderDrawPoint(gRenderer, x, y);
+					SDL_SetRenderDrawColor(renderer, PALETTE[color][0], PALETTE[color][1], PALETTE[color][2], 255);
+					SDL_RenderDrawPoint(renderer, x, y);
 				}
 			}
 		}
 	}
-	SDL_RenderPresent(gRenderer);
+	SDL_RenderPresent(renderer);
 }
 
 void ppu_clock(int cpu_cycles) {
-	if (current_line == 0) {
-		clear_screen();
+	total_cycles++;
+	ppu_cycles++;
+	if (ppu_cycles > 340) {
+		ppu_cycles -= 341;
+		current_line++;
 	}
 
-	int end_cycle = ppu_cycles + (cpu_cycles * 3);
-	for (; ppu_cycles < end_cycle; ppu_cycles++) {
-		if (ppu_cycles + cpu_cycles >= CYCLES_PER_LINE) {
-			current_line++;
-		}
-
-		if (current_line == 241) {
-			set_vblank();
-			if (can_generate_nmi() > 0) {
-				interrupt_occurred = NMI_INT;
-			}
-		}
-
-		if (current_line == 262) {
-			clear_vblank();
-			current_line = 0;
-			interrupt_occurred = 0;
-		}
-	}
-
-	if (VRAM[0x2001] != 0) {
-		printf("-------------\n");
-		for (int y = 0; y < 30; y++) {
-			for (int x = 0; x < 32; x++) {
-				printf("%03d ", VRAM[0x2000 + x + (y * 32)]);
-			}
-			printf("\n");
-		}
+	if (0 <= current_line && current_line <= 239) { //  drawing
+		current_line++;
+	} else if (current_line == 241 && ppu_cycles == 1) {    //  VBlank
+		set_vblank();
+		interrupt_occurred = NMI_INT;
+		// drawNameTables();
+		// handleWindowEvents();
+	} else if (current_line == 261 && ppu_cycles == 1) {    //  VBlank off / pre-render line
+		clear_vblank();
+		interrupt_occurred = 0;
+		current_line = 0;
+		ppu_cycles = 0;
 	}
 }
 
@@ -294,27 +282,19 @@ void old_ppu_clock(int cpu_cycles) {
 
 unsigned char init_sdl()
 {
-	unsigned char success = 1;
-	if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
-	{
-		printf( "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
-		success = 0;
-	}
-	else
-	{
-		SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT, 0, &gWindow, &gRenderer );
-        gScreenSurface = SDL_GetWindowSurface( gWindow );
-	}
-
-	return success;
+	SDL_Init(SDL_INIT_VIDEO);
+	SDL_CreateWindowAndRenderer(256, 240, 0, &window, &renderer);
+	SDL_SetWindowSize(window, 512, 480);
+	SDL_SetWindowResizable(window, SDL_TRUE);
+	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, 256, 240);
 }
 
 void free_ppu()
 {
-	SDL_FreeSurface( gGameSurface );
-	gGameSurface = NULL;
-	SDL_DestroyWindow( gWindow );
-	gWindow = NULL;
+	// SDL_FreeSurface( gGameSurface );
+	// gGameSurface = NULL;
+	// SDL_DestroyWindow( gWindow );
+	// gWindow = NULL;
 	SDL_Quit();
 }
 
@@ -346,8 +326,8 @@ void set_pixel(unsigned char x, unsigned char y, int value) { //unsigned char r,
 			break;
 	}
 
-    SDL_SetRenderDrawColor(gRenderer, R, G, B, 255);
-	SDL_RenderDrawPoint(gRenderer, x, y);
+    SDL_SetRenderDrawColor(renderer, R, G, B, 255);
+	SDL_RenderDrawPoint(renderer, x, y);
 
 	// TODO: Render using a texture and updating it
 
@@ -380,22 +360,31 @@ void init_ppu() {
 	}
     memcpy(VRAM, rom.chr_rom, 0x1FFF);
 	memset(_data, 0, _DATA_SIZE);
+	memset(oamdata, 0, OAMSIZE);
 
-	// for (int y = 0; y < 30; y++) {
-	// 	for (int x = 0; x < 32; x++) {
-	// 		printf("%03d ", VRAM[(y * 32) + x]);
-	// 	}
-	// 	printf("\n");
-	// }
-    // texture = SDL_CreateTexture(gRenderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, 8, 8);
-	// int tile_index = 0;
-	// for (int y = 0; y < HEIGHT; y+=8) {
-	// 	for (int x = 0; x < WIDTH; x+=8) {
-	// 		show_tile(0, tile_index, x, y);
-	// 		tile_index++;
-	// 	}
-	// }
-	// SDL_RenderPresent(gRenderer);
+	SDL_Texture *texture_chr = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB24, SDL_TEXTUREACCESS_STREAMING, 128, 256);
+	unsigned char framebuffer_chr[256 * 128 * 3];
+
+	int COLORS[] = {
+		0x00,
+		0x55,
+		0xaa,
+		0xff
+	};
+
+	for (int r = 0; r < 256; r++) {
+		for (int col = 0; col < 128; col++) {
+			uint16_t adr = (r / 8 * 0x100) + (r % 8) + (col / 8) * 0x10;
+			uint8_t pixel = ((rom.chr_rom[adr] >> (7-(col % 8))) & 1) + ((rom.chr_rom[adr + 8] >> (7-(col % 8))) & 1) * 2;
+			framebuffer_chr[(r * 128 * 3) + (col * 3)] = COLORS[pixel];
+			framebuffer_chr[(r * 128 * 3) + (col * 3) + 1] = COLORS[pixel];
+			framebuffer_chr[(r * 128 * 3) + (col * 3) + 2] = COLORS[pixel];
+		}
+	}
+
+	SDL_UpdateTexture(texture_chr, NULL, framebuffer_chr, 128 * sizeof(unsigned char) * 3);
+	SDL_RenderCopy(renderer, texture_chr, NULL, NULL);
+	SDL_RenderPresent(renderer);
 	ppuctrl= 0x80;
 }
 
@@ -418,21 +407,21 @@ int mirror_down_sprite_address(int addr) {
 }
 
 void build_background() {
-	int y = current_line / 8;
-	int bg_counter = 0;
+	// int y = current_line / 8;
+	// int bg_counter = 0;
 
-	for (int x = 0; x < 32 + 1; x++) {
-		// Add scroll here
-		struct Tile tile = build_tile(x, y, 0);
-		background[bg_counter] = tile;
-		bg_counter++;
-	}
+	// for (int x = 0; x < 32 + 1; x++) {
+	// 	// Add scroll here
+	// 	struct Tile tile = build_tile(x, y, 0);
+	// 	background[bg_counter] = tile;
+	// 	bg_counter++;
+	// }
 }
 
-unsigned char get_attribute(int x, int y, int offset) {
-	int address = (x / 4) + ((y / 4) * 8) + 0x03c0 + offset;
-	return VRAM[address];
-}
+// unsigned char get_attribute(int x, int y, int offset) {
+// 	int address = (x / 4) + ((y / 4) * 8) + 0x03c0 + offset;
+// 	return VRAM[address];
+// }
 
 
 // func (this *Ppu) readCharacterRAM(addr uint16) byte {
@@ -443,44 +432,44 @@ unsigned char get_attribute(int x, int y, int offset) {
 // 	this.Bus.WriteByPpu(addr, data)
 // }
 
-unsigned char **build_sprite(int sprite_id, int offset) {
-	unsigned char **sprite = (unsigned char **)malloc(64);
-	for (int i = 0; i < 16; i++) {
-		for (int j = 0; j < 8; j++) {
-			int address = sprite_id * 16 + i + offset;
-			int ram = VRAM[address];
-			if ((ram & (0x80 >> j)) != 0) {
-				sprite[i % 8][j] += (0x01 << (i / 8));
-			}
-		}
-	}
-	return sprite;
-}
+// unsigned char **build_sprite(int sprite_id, int offset) {
+// 	unsigned char **sprite = (unsigned char **)malloc(64);
+// 	for (int i = 0; i < 16; i++) {
+// 		for (int j = 0; j < 8; j++) {
+// 			int address = sprite_id * 16 + i + offset;
+// 			int ram = VRAM[address];
+// 			if ((ram & (0x80 >> j)) != 0) {
+// 				sprite[i % 8][j] += (0x01 << (i / 8));
+// 			}
+// 		}
+// 	}
+// 	return sprite;
+// }
 
-int background_table_offset() {
-	if ((ppuctrl & 0x10) > 0) {
-		return 0x1000;
-	}
-	return 0x0000;
-}
+// int background_table_offset() {
+// 	if ((ppuctrl & 0x10) > 0) {
+// 		return 0x1000;
+// 	}
+// 	return 0x0000;
+// }
 
-struct Tile build_tile(int x, int y, int offset) {
-	// INFO see. http://hp.vector.co.jp/authors/VA042397/nes/ppu.html
-	unsigned char block_id = get_block_id(x, y);
-	unsigned char sprite_id = get_sprite_id(x, y, offset);
-	unsigned char attr = get_attribute(x, y, offset);
-	unsigned char palette_id = (attr >> (block_id * 2)) & 0x03;
-	unsigned char sprite[8][8];
+// struct Tile build_tile(int x, int y, int offset) {
+// 	// INFO see. http://hp.vector.co.jp/authors/VA042397/nes/ppu.html
+// 	unsigned char block_id = get_block_id(x, y);
+// 	unsigned char sprite_id = get_sprite_id(x, y, offset);
+// 	unsigned char attr = get_attribute(x, y, offset);
+// 	unsigned char palette_id = (attr >> (block_id * 2)) & 0x03;
+// 	unsigned char sprite[8][8];
 
-	struct Tile returned_tile;
+// 	struct Tile returned_tile;
 
-	memcpy(&returned_tile.sprite, build_sprite(sprite_id, background_table_offset()), 64);
-	returned_tile.scroll_x = 0;
-	returned_tile.scroll_y = 0;
-	returned_tile.palette_id = palette_id;
+// 	memcpy(&returned_tile.sprite, build_sprite(sprite_id, background_table_offset()), 64);
+// 	returned_tile.scroll_x = 0;
+// 	returned_tile.scroll_y = 0;
+// 	returned_tile.palette_id = palette_id;
 
-	return returned_tile;
-}
+// 	return returned_tile;
+// }
 
 
 // func (this *Ppu) buildSprites() {
