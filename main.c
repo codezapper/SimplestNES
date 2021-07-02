@@ -114,10 +114,6 @@ void main(int argc, char **argv) {
 
         log_to_screen(opcode, first, second, fn_name);
 
-        if (PC == 0xc5c3) {
-            int a = 0;
-        }
-
         void (*fun_ptr)(unsigned char, unsigned char, unsigned char) = addressing[opcode].opcode_fun;
         (*fun_ptr)(first, second, addressing[opcode].addr_mode);
 

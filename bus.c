@@ -122,9 +122,6 @@ void ppu_write(uint16_t address, unsigned char value) {
         case PPUMASK:
             write_ppumask(value);
             break;
-        case PPUSTATUS:
-            write_ppustatus(value);
-            break;
         case OAMADDR:
             write_oamaddr(value);
             break;
