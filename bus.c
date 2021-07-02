@@ -138,9 +138,9 @@ void ppu_write(uint16_t address, unsigned char value) {
             write_ppudata(value);
             break;
         case OAMDMA:
-            uint16_t address = value << 8;
+            uint16_t cpu_address = value << 8;
             for (int i = 0; i < 256; i++) {
-                write_dma(i, RAM[value+i]);
+                write_dma(i, RAM[cpu_address+i]);
             }
             break;
     }

@@ -102,10 +102,11 @@ void write_ppumask(unsigned char value) {
 }
 
 unsigned char read_ppustatus() {
+	unsigned char current = ppustatus;
 	clear_vblank();
 	t_address_toggle = HIGH;
 	t_scroll_toggle = HIGH;
-    return ppustatus;
+    return current;
 }
 
 void write_oamaddr(unsigned char value) {
@@ -202,7 +203,7 @@ void free_ppu()
 }
 
 void draw_background() {
-	
+
 }
 
 void init_ppu() {
@@ -226,6 +227,11 @@ void ppu_clock(int cpu_cycles) {
 
 	if (current_line < 240) {
 		draw_background();
+	} else if (current_line == 241) {
+		interrupt_occurred = NMI_INT;
+		set_vblank();
+	} else if (current_line == 261) {
+		clear_vblank();
 	}
 }
 
