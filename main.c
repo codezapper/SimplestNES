@@ -57,12 +57,12 @@ int cpu_interrupt_count = 0;
 
 int must_handle_interrupt() {
     if ((interrupt_occurred == NMI_INT) || ((interrupt_occurred == IRQ_INT) && (check_bit(PS, ID) == 0))){
-        if (cpu_interrupt_count >= 6) {
-            cpu_interrupt_count = 0;
+        // if (cpu_interrupt_count >= 6) {
+        //     cpu_interrupt_count = 0;
             return 1;
-        } else {
-            cpu_interrupt_count++;
-        }
+        // } else {
+        //     cpu_interrupt_count++;
+        // }
     }
     return 0;
 }
@@ -93,14 +93,14 @@ void main(int argc, char **argv) {
     // JMP(0xFC, 0xFF, INDIRECT);
     PC = (RAM[0xFFFD] << 8) | RAM[0xFFFC];
     while (PC > 0) {
-        // if (must_handle_interrupt(interrupt_occurred)) {
-        // if (interrupt_occurred == NMI_INT) {
-        //     NMI();
-        // } else {
-        //     IRQ();
-        // }
-        interrupt_occurred = 0;
-        // }
+        if (must_handle_interrupt(interrupt_occurred)) {
+            if (interrupt_occurred == NMI_INT) {
+                NMI();
+            } else {
+                IRQ();
+            }
+            interrupt_occurred = 0;
+        }
         opcode = RAM[PC];
         if (addressing[opcode].cycles == 0) {
             PC++;
@@ -114,10 +114,6 @@ void main(int argc, char **argv) {
         strncpy(fn_name, addressing[opcode].name, 3);
 
         log_to_screen(opcode, first, second, fn_name);
-
-        if (PC == 0xc85f) {
-            int a = 0;
-        }
 
         void (*fun_ptr)(unsigned char, unsigned char, unsigned char) = addressing[opcode].opcode_fun;
         (*fun_ptr)(first, second, addressing[opcode].addr_mode);

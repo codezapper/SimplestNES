@@ -45,7 +45,7 @@ uint16_t SP = 0xFD;
 unsigned char A = 0;
 unsigned char X = 0;
 unsigned char Y = 0;
-unsigned char PS = 0x24;
+unsigned char PS = 0x34;
 
 int cycles_cnt = 0;
 unsigned char extra_value = 0;

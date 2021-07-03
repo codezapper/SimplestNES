@@ -58,14 +58,13 @@ unsigned char ppustatus = 0x80;
 unsigned char oamaddr = 0;
 unsigned char oamdata[OAMSIZE];
 unsigned char ppuscroll;
-unsigned char ppuaddr;
 unsigned char ppudata;
 unsigned char oamdma;
 
 unsigned char t_address_toggle = HIGH;
 unsigned char t_scroll_toggle = HIGH;
 
-uint16_t ppu_address = 0;
+uint16_t ppuaddress = 0;
 
 unsigned char interrupt_occurred = 0;
 
@@ -130,11 +129,11 @@ void write_dma(unsigned char address, unsigned char value) {
 }
 
 void write_ppudata(unsigned char value) {
-    ppudata = value;
+    VRAM[ppuaddress] = value;
 	if (check_bit(ppuctrl, 2) == 1) {
-		ppuaddr += 32;
+		ppuaddress += 32;
 	} else {
-		ppuaddr++;
+		ppuaddress++;
 	}
 }
 
@@ -151,16 +150,16 @@ void write_ppuscroll(unsigned char value) {
 void write_ppuaddress(unsigned char value) {
 	if (t_address_toggle == HIGH) {
 		t_address_toggle = LOW;
-		ppu_address = value << 8;
+		ppuaddress = value << 8;
 	} else {
 		t_address_toggle = HIGH;
-		ppu_address |= value;
+		ppuaddress |= value;
 	}
 }
 
 unsigned char read_ppudata() {
-	unsigned char value = VRAM[ppu_address];
-	ppu_address++;
+	unsigned char value = VRAM[ppuaddress];
+	ppuaddress++;
     return value;
 }
 
