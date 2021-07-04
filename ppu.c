@@ -61,12 +61,15 @@ unsigned char ppuscroll;
 unsigned char ppudata;
 unsigned char oamdma;
 
+unsigned char ppudata_buffer = 0;
+
 unsigned char t_address_toggle = HIGH;
 unsigned char t_scroll_toggle = HIGH;
 
 uint16_t ppuaddress = 0;
 
 unsigned char interrupt_occurred = 0;
+unsigned char interrupt_handled = 0;
 
 SDL_Renderer *renderer;
 SDL_Window *window;
@@ -147,8 +150,7 @@ void write_ppuscroll(unsigned char value) {
 	}
 }
 
-void write_ppuaddress(unsigned char value) {
-	if (t_address_toggle == HIGH) {
+void write_ppuaddress(unsigned char value) {	if (t_address_toggle == HIGH) {
 		t_address_toggle = LOW;
 		ppuaddress = value << 8;
 	} else {
@@ -158,7 +160,8 @@ void write_ppuaddress(unsigned char value) {
 }
 
 unsigned char read_ppudata() {
-	unsigned char value = VRAM[ppuaddress];
+	unsigned char value = ppudata_buffer;
+	ppudata_buffer = VRAM[ppuaddress];
 	ppuaddress++;
     return value;
 }
@@ -188,8 +191,8 @@ int can_generate_nmi() {
 unsigned char init_sdl()
 {
 	SDL_Init(SDL_INIT_VIDEO);
-	SDL_CreateWindowAndRenderer(256, 240, 0, &window, &renderer);
-	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, 256, 240);
+	SDL_CreateWindowAndRenderer(WIDTH, HEIGHT, 0, &window, &renderer);
+	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
 }
 
 void free_ppu()
@@ -201,8 +204,40 @@ void free_ppu()
 	SDL_Quit();
 }
 
-void draw_background() {
+unsigned char framebuffer[WIDTH * HEIGHT * 3];
 
+int bg_bank_address[] = {
+	0x2000,
+	0x2400,
+	0x2800,
+	0x2C00
+};
+
+int COLORS[] = {
+	0x00,
+	0x55,
+	0xaa,
+	0xff
+};
+
+void draw_background() {
+	int bg_bank = ppuctrl & 0x03;
+	for (int r = 0; r < 240; r++) {
+		for (int col = 0; col < 256; col++) {
+			uint16_t tile_nr = VRAM[0x2000 + (r / 8 * 32) + (col / 8)];
+			uint16_t tile_attr = VRAM[0];
+
+			uint16_t adr = bg_bank_address[bg_bank] + (tile_nr * 0x10) + (r % 8);
+			uint8_t pixel = ((VRAM[adr] >> (7 - (col % 8))) & 1) + (((VRAM[adr + 8] >> (7 - (col % 8))) & 1) * 2);
+			framebuffer[(r * 256 * 3) + (col * 3)] = COLORS[pixel];
+			framebuffer[(r * 256 * 3) + (col * 3) + 1] = COLORS[pixel];
+			framebuffer[(r * 256 * 3) + (col * 3) + 2] = COLORS[pixel];
+		}
+	}
+
+	SDL_UpdateTexture(texture, NULL, framebuffer, 256 * sizeof(unsigned char) * 3);
+	SDL_RenderCopy(renderer, texture, NULL, NULL);
+	// SDL_RenderPresent(renderer);
 }
 
 void init_ppu() {
@@ -222,15 +257,26 @@ void ppu_clock(int cpu_cycles) {
 	if (ppu_cycles > 340) {
 		ppu_cycles -= 341;
 		current_line++;
+		// printf("CURRENT_LINE: %03d\n", current_line);
+		if (current_line >= 240) {
+			int a = 0;
+		}
 	}
 
 	if (current_line < 240) {
-		draw_background();
+		// draw_background();
 	} else if (current_line == 241) {
-		interrupt_occurred = NMI_INT;
-		set_vblank();
+		if (interrupt_occurred == 0) {
+			interrupt_handled = 0;
+			interrupt_occurred = NMI_INT;
+			set_vblank();
+		}
 	} else if (current_line == 261) {
 		clear_vblank();
+		interrupt_occurred = 0;
+		current_line = 0;
+		draw_background();
+		SDL_RenderPresent(renderer);
 	}
 }
 

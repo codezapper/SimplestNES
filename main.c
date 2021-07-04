@@ -17,19 +17,21 @@ extern uint16_t SP;
 extern struct ROM rom;
 extern uint16_t PC;
 extern unsigned char interrupt_occurred;
+extern unsigned char interrupt_handled;
 
 int cycles = 0;
+extern int total_cycles;
 
 void log_to_screen(unsigned char opcode, unsigned char first, unsigned char second, char *fn_name) {
     int am = addressing[opcode].addr_mode;
 
     char log_line[1024];
     if (addressing[opcode].bytes == 3) {
-        sprintf(log_line, "%04x %02x %02x %02x %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, second, fn_name, A, X, Y, PS, SP, 0); 
+        sprintf(log_line, "%04x %02x %02x %02x %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, second, fn_name, A, X, Y, PS, SP, total_cycles); 
     } else if (addressing[opcode].bytes == 2) {
-        sprintf(log_line, "%04x %02x %02x    %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, fn_name, A, X, Y, PS, SP, 0); 
+        sprintf(log_line, "%04x %02x %02x    %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, fn_name, A, X, Y, PS, SP, total_cycles); 
     } else {
-        sprintf(log_line, "%04x %02x       %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, fn_name, A, X, Y, PS, SP, 0); 
+        sprintf(log_line, "%04x %02x       %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, fn_name, A, X, Y, PS, SP, total_cycles); 
     }
 
     for (int i = 0; log_line[i]!='\0'; i++) {
@@ -56,6 +58,9 @@ int is_jump(unsigned char *fn_name) {
 int cpu_interrupt_count = 0;
 
 int must_handle_interrupt() {
+    if (interrupt_handled == 1) {
+        return 0;
+    }
     if ((interrupt_occurred == NMI_INT) || ((interrupt_occurred == IRQ_INT) && (check_bit(PS, ID) == 0))){
         // if (cpu_interrupt_count >= 6) {
         //     cpu_interrupt_count = 0;
@@ -99,7 +104,7 @@ void main(int argc, char **argv) {
             } else {
                 IRQ();
             }
-            interrupt_occurred = 0;
+            interrupt_handled = 1;
         }
         opcode = RAM[PC];
         if (addressing[opcode].cycles == 0) {
@@ -123,6 +128,8 @@ void main(int argc, char **argv) {
         }
 
         cycles += addressing[opcode].cycles;
+        ppu_clock(addressing[opcode].cycles);
+        ppu_clock(addressing[opcode].cycles);
         ppu_clock(addressing[opcode].cycles);
 
         // if (cycles >= 30000) {
