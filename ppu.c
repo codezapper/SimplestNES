@@ -207,6 +207,11 @@ void free_ppu()
 unsigned char framebuffer[WIDTH * HEIGHT * 3];
 
 int bg_bank_address[] = {
+	0x0,
+	0x1000
+};
+
+int fg_bank_address[] = {
 	0x2000,
 	0x2400,
 	0x2800,
@@ -220,23 +225,55 @@ int COLORS[] = {
 	0xff
 };
 
-void draw_background() {
-	int bg_bank = ppuctrl & 0x03;
-	for (int r = 0; r < 240; r++) {
-		for (int col = 0; col < 256; col++) {
-			uint16_t tile_nr = VRAM[0x2000 + (r / 8 * 32) + (col / 8)];
-			uint16_t tile_attr = VRAM[0];
+void set_pixel(int x, int y, int color) {
+	unsigned char R = PALETTE[color][0];
+	unsigned char G = PALETTE[color][1];
+	unsigned char B = PALETTE[color][2];
 
-			uint16_t adr = bg_bank_address[bg_bank] + (tile_nr * 0x10) + (r % 8);
-			uint8_t pixel = ((VRAM[adr] >> (7 - (col % 8))) & 1) + (((VRAM[adr + 8] >> (7 - (col % 8))) & 1) * 2);
-			framebuffer[(r * 256 * 3) + (col * 3)] = COLORS[pixel];
-			framebuffer[(r * 256 * 3) + (col * 3) + 1] = COLORS[pixel];
-			framebuffer[(r * 256 * 3) + (col * 3) + 2] = COLORS[pixel];
+	SDL_SetRenderDrawColor(renderer, 255, R, G, B);
+	SDL_RenderDrawPoint(renderer, x, y);
+}
+
+void show_tile(int bank, int tile_n, int row, int col) {
+	int tile[16];
+	int start_x = col * 8;
+	int start_y = row * 8;
+	if (tile_n == 98) {
+		int a = 0;
+	}
+	for (int y = 0; y <= 7; y++) {
+		unsigned char upper = VRAM[bank + tile_n * 16 + y];
+		unsigned char lower = VRAM[bank + tile_n * 16 + y + 8];
+
+		for (int x = 7; x >= 0; x--) {
+			int value = ((1 & upper) << 1) | (1 & lower);
+			if (value != 0) {
+				int a = 0;
+			}
+			upper >>= 1;
+			lower >>= 1;
+			set_pixel(x + start_x, y + start_y, value);
+		}
+	}
+	SDL_RenderPresent(renderer);
+}
+
+void draw_background() {
+	SDL_SetRenderTarget(renderer, texture);
+	int bg_bank = check_bit(ppuctrl, 4);
+	unsigned char attr_table[64];
+	memcpy(attr_table, &VRAM[0x23C0], 64);
+	// int bg_bank = ppuctrl & 0x03;
+	for (int row = 0; row < 30; row++) {
+		for (int col = 0; col < 32; col++) {
+			uint16_t tile_n = VRAM[0x2000 + (row * 32) + col];
+			show_tile(bg_bank_address[bg_bank], tile_n, row, col);
 		}
 	}
 
-	SDL_UpdateTexture(texture, NULL, framebuffer, 256 * sizeof(unsigned char) * 3);
+	// SDL_UpdateTexture(texture, NULL, framebuffer, 256 * sizeof(unsigned char) * 3);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
+	SDL_SetRenderTarget(renderer, NULL);
 	// SDL_RenderPresent(renderer);
 }
 
@@ -264,7 +301,10 @@ void ppu_clock(int cpu_cycles) {
 	}
 
 	if (current_line < 240) {
-		// draw_background();
+		if (total_cycles > 100000) {
+			draw_background();
+			SDL_RenderPresent(renderer);
+		}
 	} else if (current_line == 241) {
 		if (interrupt_occurred == 0) {
 			interrupt_handled = 0;
@@ -275,8 +315,8 @@ void ppu_clock(int cpu_cycles) {
 		clear_vblank();
 		interrupt_occurred = 0;
 		current_line = 0;
-		draw_background();
-		SDL_RenderPresent(renderer);
+		// draw_background();
+		// SDL_RenderPresent(renderer);
 	}
 }
 
