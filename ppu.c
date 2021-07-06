@@ -66,6 +66,8 @@ unsigned char ppudata_buffer = 0;
 unsigned char t_address_toggle = HIGH;
 unsigned char t_scroll_toggle = HIGH;
 
+unsigned char attr_table[64];
+
 uint16_t ppuaddress = 0;
 
 unsigned char interrupt_occurred = 0;
@@ -225,12 +227,44 @@ int COLORS[] = {
 	0xff
 };
 
-void set_pixel(int x, int y, int color) {
-	unsigned char R = PALETTE[color][0];
-	unsigned char G = PALETTE[color][1];
-	unsigned char B = PALETTE[color][2];
+unsigned char bg_palette[4][4];
 
-	SDL_SetRenderDrawColor(renderer, 255, R, G, B);
+void update_bg_palette() {
+	bg_palette[0][0] = VRAM[0x3F00];
+	bg_palette[0][1] = VRAM[0x3F01];
+	bg_palette[0][2] = VRAM[0x3F02];
+	bg_palette[0][3] = VRAM[0x3F03];
+
+	bg_palette[1][0] = VRAM[0x3F04];
+	bg_palette[1][1] = VRAM[0x3F05];
+	bg_palette[1][2] = VRAM[0x3F06];
+	bg_palette[1][3] = VRAM[0x3F07];
+
+	bg_palette[2][0] = VRAM[0x3F08];
+	bg_palette[2][1] = VRAM[0x3F09];
+	bg_palette[2][2] = VRAM[0x3F0A];
+	bg_palette[2][3] = VRAM[0x3F0B];
+
+	bg_palette[3][0] = VRAM[0x3F0C];
+	bg_palette[3][1] = VRAM[0x3F0D];
+	bg_palette[3][2] = VRAM[0x3F0E];
+	bg_palette[3][3] = VRAM[0x3F0F];
+}
+
+void set_pixel(int x, int y, int color_index, int palette_index) {
+	update_bg_palette();
+
+	unsigned char R = PALETTE[bg_palette[palette_index][color_index]][0];
+	unsigned char G = PALETTE[bg_palette[palette_index][color_index]][1];
+	unsigned char B = PALETTE[bg_palette[palette_index][color_index]][2];
+
+	if (bg_palette[palette_index][color_index] == VRAM[0x3F00]) {
+		R = 0;
+		G = 0;
+		B = 0;
+	}
+
+	SDL_SetRenderDrawColor(renderer, R, G, B, 255);
 	SDL_RenderDrawPoint(renderer, x, y);
 }
 
@@ -239,29 +273,41 @@ void show_tile(int bank, int tile_n, int row, int col) {
 	int start_x = col * 8;
 	int start_y = row * 8;
 	if (tile_n == 98) {
-		int a = 0;
+		memcpy(attr_table, &VRAM[0x23C0], 64);
+		int attr_x = col / 16;
+		int attr_y = row / 16;
+		unsigned char attr_byte = attr_table[attr_x * attr_y];
+		unsigned char sq[4] = {
+			attr_byte & 0b00000011,
+			(attr_byte & 0b00001100) >> 2,
+			(attr_byte & 0b00110000) >> 4,
+			(attr_byte & 0b11000000) >> 6
+		};
+
+		// int attr_table_idx = row / 4 * 8 +  col / 4;
+		// int attr_byte = VRAM[0x3c0 + attr_table_idx];  // note: still using hardcoded first nametable
+
+		if (attr_byte > 0) {
+			int a = 0;
+		}
 	}
+
 	for (int y = 0; y <= 7; y++) {
 		unsigned char upper = VRAM[bank + tile_n * 16 + y];
 		unsigned char lower = VRAM[bank + tile_n * 16 + y + 8];
 
 		for (int x = 7; x >= 0; x--) {
 			int value = ((1 & upper) << 1) | (1 & lower);
-			if (value != 0) {
-				int a = 0;
-			}
 			upper >>= 1;
 			lower >>= 1;
-			set_pixel(x + start_x, y + start_y, value);
+			set_pixel(x + start_x, y + start_y, value, 0);
 		}
 	}
-	SDL_RenderPresent(renderer);
 }
 
 void draw_background() {
-	SDL_SetRenderTarget(renderer, texture);
+	// SDL_SetRenderTarget(renderer, texture);
 	int bg_bank = check_bit(ppuctrl, 4);
-	unsigned char attr_table[64];
 	memcpy(attr_table, &VRAM[0x23C0], 64);
 	// int bg_bank = ppuctrl & 0x03;
 	for (int row = 0; row < 30; row++) {
@@ -272,9 +318,9 @@ void draw_background() {
 	}
 
 	// SDL_UpdateTexture(texture, NULL, framebuffer, 256 * sizeof(unsigned char) * 3);
-	SDL_RenderCopy(renderer, texture, NULL, NULL);
-	SDL_SetRenderTarget(renderer, NULL);
-	// SDL_RenderPresent(renderer);
+	// SDL_RenderCopy(renderer, texture, NULL, NULL);
+	// SDL_SetRenderTarget(renderer, NULL);
+	SDL_RenderPresent(renderer);
 }
 
 void init_ppu() {
@@ -301,9 +347,8 @@ void ppu_clock(int cpu_cycles) {
 	}
 
 	if (current_line < 240) {
-		if (total_cycles > 100000) {
+		if (total_cycles > 82000) {
 			draw_background();
-			SDL_RenderPresent(renderer);
 		}
 	} else if (current_line == 241) {
 		if (interrupt_occurred == 0) {
