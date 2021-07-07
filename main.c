@@ -21,17 +21,18 @@ extern unsigned char interrupt_handled;
 
 int cycles = 0;
 extern int total_cycles;
+extern int current_line;
 
 void log_to_screen(unsigned char opcode, unsigned char first, unsigned char second, char *fn_name) {
     int am = addressing[opcode].addr_mode;
 
     char log_line[1024];
     if (addressing[opcode].bytes == 3) {
-        sprintf(log_line, "%04x %02x %02x %02x %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, second, fn_name, A, X, Y, PS, SP, total_cycles); 
+        sprintf(log_line, "%04x %02x %02x %02x %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d LINE: %d\n", PC, opcode, first, second, fn_name, A, X, Y, PS, SP, total_cycles, current_line);
     } else if (addressing[opcode].bytes == 2) {
-        sprintf(log_line, "%04x %02x %02x    %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, first, fn_name, A, X, Y, PS, SP, total_cycles); 
+        sprintf(log_line, "%04x %02x %02x    %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d LINE: %d\n", PC, opcode, first, fn_name, A, X, Y, PS, SP, total_cycles, current_line);
     } else {
-        sprintf(log_line, "%04x %02x       %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d\n", PC, opcode, fn_name, A, X, Y, PS, SP, total_cycles); 
+        sprintf(log_line, "%04x %02x       %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d LINE: %d\n", PC, opcode, fn_name, A, X, Y, PS, SP, total_cycles, current_line);
     }
 
     for (int i = 0; log_line[i]!='\0'; i++) {
