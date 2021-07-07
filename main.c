@@ -77,8 +77,8 @@ void main(int argc, char **argv) {
     init_ram();
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_writes/cpu_dummy_writes_oam.nes");
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_reads.nes");
-    load_rom("/home/gabriele/Downloads/dk.nes");
-    // load_rom("/home/gabriele/Downloads/bf.nes");
+    // load_rom("/home/gabriele/Downloads/dk.nes");
+    load_rom("/home/gabriele/Downloads/bf.nes");
     // load_rom("/home/gabriele/Downloads/p/palette_pal.nes");
     // load_rom("/home/gabriele/Downloads/color_test.nes");
     // load_rom("/home/gabriele/Downloads/cpu_test/nestest.nes");
@@ -98,7 +98,6 @@ void main(int argc, char **argv) {
     init_ppu();
 
     SP = 0xFD;
-    PS = 0x34;
     A = 0;
     X = 0;
     Y = 0;
@@ -138,12 +137,5 @@ void main(int argc, char **argv) {
 
         cycles += addressing[opcode].cycles;
         ppu_clock(addressing[opcode].cycles);
-        ppu_clock(addressing[opcode].cycles);
-        ppu_clock(addressing[opcode].cycles);
-
-        // if (cycles >= 30000) {
-        //     cycles = 0;
-        //     NMI();
-        // }
     }
 }

@@ -45,7 +45,7 @@ uint16_t SP = 0xFD;
 unsigned char A = 0;
 unsigned char X = 0;
 unsigned char Y = 0;
-unsigned char PS = 0x34;
+unsigned char PS = 0x24;
 
 int cycles_cnt = 0;
 unsigned char extra_value = 0;
@@ -518,9 +518,10 @@ void PHA(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void PHP(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    unsigned char value = set_bit(PS, B4);
+    // unsigned char value = set_bit(PS, B4);
 
-    stack_push(value);
+    // stack_push(value);
+    stack_push(PS);
 }
 
 void PLA(unsigned char first, unsigned char second, unsigned char addr_mode) {

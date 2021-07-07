@@ -78,6 +78,8 @@ SDL_Window *window;
 SDL_Texture *texture;
 
 int current_line = 0;
+int current_row = 0;
+int prev_row = 0;
 int ppu_cycles = 0;
 
 unsigned char PALETTE[0x40][3] = {
@@ -260,11 +262,11 @@ void set_pixel(int x, int y, int color_index, int palette_index) {
 	unsigned char G = PALETTE[bg_palette[palette_index][color_index]][1];
 	unsigned char B = PALETTE[bg_palette[palette_index][color_index]][2];
 
-	if (bg_palette[palette_index][color_index] == VRAM[0x3F00]) {
-		R = 0;
-		G = 0;
-		B = 0;
-	}
+	// if (bg_palette[palette_index][color_index] == VRAM[0x3F00]) {
+	// 	R = 0;
+	// 	G = 0;
+	// 	B = 0;
+	// }
 
 	unsigned int offset = (WIDTH * y * sizeof(uint32_t)) + (x * sizeof(uint32_t));
 	framebuffer[offset] = B;
@@ -313,16 +315,15 @@ void show_tile(int bank, int tile_n, int row, int col) {
 void draw_background() {
 	int bg_bank = check_bit(ppuctrl, 4);
 	memcpy(attr_table, &VRAM[0x23C0], 64);
-	for (int row = 0; row < 30; row++) {
+	// for (int row = 0; row < 30; row++) {
 		for (int col = 0; col < 32; col++) {
-			uint16_t tile_n = VRAM[0x2000 + (row * 32) + col];
-			show_tile(bg_bank_address[bg_bank], tile_n, row, col);
+			uint16_t tile_n = VRAM[0x2000 + ( current_row * 32) + col];
+			show_tile(bg_bank_address[bg_bank], tile_n, current_row, col);
 		}
-	}
+	// }
 
 	SDL_UpdateTexture(texture, NULL, framebuffer, WIDTH * 4);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
-	SDL_RenderPresent(renderer);
 }
 
 void init_ppu() {
@@ -342,34 +343,42 @@ void init_ppu() {
 }
 
 void ppu_clock(int cpu_cycles) {
-	total_cycles++;
-	ppu_cycles++;
-
+	int end_cycles = cpu_cycles * 3;
 	SDL_Event e;
-	SDL_PollEvent(&e);
-	if (ppu_cycles > 340) {
-		ppu_cycles -= 341;
-		current_line++;
-		// printf("CURRENT_LINE: %03d\n", current_line);
-		if (current_line >= 240) {
-			int a = 0;
-		}
-	}
 
-	if (current_line < 240) {
-		if (total_cycles > 100000) {
-			draw_background();
+	// for (int i = 0; i < end_cycles; i++) {
+		total_cycles++;
+		ppu_cycles++;
+
+		SDL_PollEvent(&e);
+
+		if (ppu_cycles > 340) {
+			ppu_cycles = 1;
+			current_line++;
+			// printf("CURRENT_LINE: %03d\n", current_line);
+			if (current_line >= 240) {
+				int a = 0;
+			}
 		}
-	} else if (current_line == 241) {
-		if (interrupt_occurred == 0) {
-			interrupt_handled = 0;
-			interrupt_occurred = NMI_INT;
-			set_vblank();
+
+		if (current_line < 240) {
+				current_row = (int)(current_line / 8);
+				if (current_row != prev_row) {
+					prev_row = current_row;
+					draw_background();
+				}
+		} else if (current_line == 241) {
+			if (interrupt_occurred == 0) {
+				SDL_RenderPresent(renderer);
+				interrupt_handled = 0;
+				interrupt_occurred = NMI_INT;
+				set_vblank();
+			}
+		} else if (current_line == 261) {
+			clear_vblank();
+			interrupt_occurred = 0;
+			current_line = 0;
 		}
-	} else if (current_line == 261) {
-		clear_vblank();
-		interrupt_occurred = 0;
-		current_line = 0;
-	}
+	// }
 }
 

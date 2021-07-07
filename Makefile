@@ -1,7 +1,5 @@
-clean:
-	rm main.o cpu.o ppu.o rom.o utils.o bus.o yanes
-
 exe:
+	rm main.o cpu.o ppu.o rom.o utils.o bus.o yanes
 	gcc -g -O0 -c utils.c -o utils.o
 	gcc -g -O0 -c cpu.c -o cpu.o
 	gcc -g -O0 -I/usr/include/SDL2 -c ppu.c -o ppu.o
