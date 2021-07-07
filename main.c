@@ -78,12 +78,14 @@ void main(int argc, char **argv) {
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_reads.nes");
     load_rom("/home/gabriele/Downloads/dk.nes");
     // load_rom("/home/gabriele/Downloads/bf.nes");
+    // load_rom("/home/gabriele/Downloads/p/palette_pal.nes");
     // load_rom("/home/gabriele/Downloads/color_test.nes");
     // load_rom("/home/gabriele/Downloads/cpu_test/nestest.nes");
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_reads.nes");
     // load_rom("/home/gabriele/Downloads/ppu_read_buffer/test_ppu_read_buffer.nes");
     // load_rom("/home/gabriele/Downloads/scanline.nes");
     // load_rom("/home/gabriele/Downloads/pm.nes");
+    // load_rom("/home/gabriele/Downloads/branch_timing_tests/1.Branch_Basics.nes");
     // printf("%d\n", rom.header.prg_blocks);
     // printf("%s %d %d %d %d %d %d %d\n", rom.header.nes, rom.header.prg_blocks, rom.header.chr_blocks, rom.header.flags_6, rom.header.flags_7, rom.header.flags_8, rom.header.flags_9, rom.header.flags_10, rom.header.padding[5]);
 
@@ -93,6 +95,12 @@ void main(int argc, char **argv) {
     unsigned char second;
 
     init_ppu();
+
+    SP = 0xFD;
+    PS = 0x34;
+    A = 0;
+    X = 0;
+    Y = 0;
 
     // PC = 0xC000; // Test mode, use log compare
     // JMP(0xFC, 0xFF, INDIRECT);

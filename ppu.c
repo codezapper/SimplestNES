@@ -330,13 +330,21 @@ void init_ppu() {
 	}
     memcpy(VRAM, rom.chr_rom, 0x1FFF);
 
-	ppuctrl= 0x80;
+	ppuctrl= 0;
+	ppumask = 0;
+	ppustatus = 0x80;
+	oamaddr = 0;
+	ppuscroll = 0;
+	ppuaddress = 0;
+	ppudata = 0;
 }
 
 void ppu_clock(int cpu_cycles) {
 	total_cycles++;
 	ppu_cycles++;
 
+	SDL_Event e;
+	SDL_PollEvent(&e);
 	if (ppu_cycles > 340) {
 		ppu_cycles -= 341;
 		current_line++;
@@ -347,7 +355,7 @@ void ppu_clock(int cpu_cycles) {
 	}
 
 	if (current_line < 240) {
-		if (total_cycles > 82000) {
+		if (total_cycles > 650000) {
 			draw_background();
 		}
 	} else if (current_line == 241) {
@@ -360,7 +368,6 @@ void ppu_clock(int cpu_cycles) {
 		clear_vblank();
 		interrupt_occurred = 0;
 		current_line = 0;
-		// draw_background();
 		// SDL_RenderPresent(renderer);
 	}
 }
