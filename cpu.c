@@ -45,7 +45,7 @@ uint16_t SP = 0xFD;
 unsigned char A = 0;
 unsigned char X = 0;
 unsigned char Y = 0;
-unsigned char PS = 0x24;
+unsigned char PS = 0b00000100;
 
 int cycles_cnt = 0;
 unsigned char extra_value = 0;
@@ -82,7 +82,7 @@ void pop_PC() {
 
 void init_ram()
 {
-    memset(RAM, 0, sizeof(RAM));
+    memset(RAM, 0xFF, sizeof(RAM));
 }
 
 void ADC(unsigned char first, unsigned char second, unsigned char addr_mode) {

@@ -315,12 +315,13 @@ void show_tile(int bank, int tile_n, int row, int col) {
 void draw_background() {
 	int bg_bank = check_bit(ppuctrl, 4);
 	memcpy(attr_table, &VRAM[0x23C0], 64);
-	// for (int row = 0; row < 30; row++) {
+ //	for (int row = 0; row < 30; row++) {
 		for (int col = 0; col < 32; col++) {
 			uint16_t tile_n = VRAM[0x2000 + ( current_row * 32) + col];
 			show_tile(bg_bank_address[bg_bank], tile_n, current_row, col);
 		}
 	// }
+
 
 	SDL_UpdateTexture(texture, NULL, framebuffer, WIDTH * 4);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
