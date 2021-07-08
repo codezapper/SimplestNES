@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "rom.h"
 #include "utils.h"
@@ -13,6 +14,11 @@ unsigned char is_nes_20 = 0;
 
 void load_rom(char *filename) {
     FILE *rom_file = fopen(filename, "rb");
+    if (rom_file == NULL) {
+        printf("Unable to open %s", filename);
+        exit(1);
+    }
+
     fread(&rom.header, 16, 1, rom_file);
 
     // unsigned char mapper1 = rom.header.flags_6 >> 4;

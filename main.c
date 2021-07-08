@@ -74,11 +74,16 @@ int must_handle_interrupt() {
 }
 
 void main(int argc, char **argv) {
+    if (argc < 2) {
+        printf("Usage: %s filepath\n", argv[0]);
+    }
+
     init_ram();
+    load_rom(argv[1]);
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_writes/cpu_dummy_writes_oam.nes");
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_reads.nes");
     // load_rom("/home/gabriele/Downloads/dk.nes");
-    load_rom("/home/gabriele/Downloads/bf.nes");
+    // load_rom("/home/gabriele/Downloads/bf.nes");
     // load_rom("/home/gabriele/Downloads/p/palette_pal.nes");
     // load_rom("/home/gabriele/Downloads/color_test.nes");
     // load_rom("/home/gabriele/Downloads/cpu_test/nestest.nes");
@@ -126,7 +131,7 @@ void main(int argc, char **argv) {
         memset(fn_name, 0, 4);
         strncpy(fn_name, addressing[opcode].name, 3);
 
-        log_to_screen(opcode, first, second, fn_name);
+        // log_to_screen(opcode, first, second, fn_name);
 
         void (*fun_ptr)(unsigned char, unsigned char, unsigned char) = addressing[opcode].opcode_fun;
         (*fun_ptr)(first, second, addressing[opcode].addr_mode);
