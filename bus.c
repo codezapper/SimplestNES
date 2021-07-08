@@ -77,7 +77,20 @@ unsigned char cpu_read(unsigned char first, unsigned char second, unsigned char 
                 value &= 0x07FF;
             }
 
-            if (((value >= 0x2000) && (value <= 0x2007)) || (value == 0x4014)) {
+            if ((value >= 0x2000) && (value <= 0x3FFF)) {
+                unsigned char offset = value % 8;
+                switch (offset) {
+                    case 2:
+                        return read_ppustatus();
+                        break;
+                    case 4:
+                        return read_oamdata();
+                        break;
+                    case 7:
+                        return read_ppudata();
+                        break;
+                }
+            } else if (value == 0x4014) {
                 return ppu_read(value);
             } else {
                 return RAM[value];
@@ -92,8 +105,25 @@ void cpu_write(unsigned char first, unsigned char second, unsigned char addr_mod
         uint16_t address = get_address_from_params(first, second, addr_mode);
         // If it's a PPU register, they're mirrored up to 0x3FFF
         // Maybe 0x2000-0x3FFF ?
-        if (((address >= 0x2000) && (address <= 0x2007)) || (address == 0x4014)) {
-            ppu_write(address, value);
+        if ((address >= 0x2000) && (address <= 0x3FFF)) {
+            if (cycles < 29658) {
+                return;
+            }
+            unsigned char offset = address % 8;
+            switch (offset) {
+                case 0:
+                    return write_ppuctrl(value);
+                case 1:
+                    return write_ppumask(value);
+                case 3:
+                    return write_oamaddr(value);
+                case 5:
+                    return write_ppuscroll(value);
+                case 6:
+                    return write_ppuaddress(value);
+                case 7:
+                    return write_ppudata(value);
+            }
         } else {
             RAM[address] = value;
         }
