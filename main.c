@@ -43,15 +43,15 @@ void log_to_screen(unsigned char opcode, unsigned char first, unsigned char seco
     status_string[7] = check_bit(PS, 0) ? 'C' : 'c';
     if (addressing[opcode].bytes == 3)
     {
-        sprintf(log_line, "%04x %02x %02x %02x %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d LINE: %d %s\n", PC, opcode, first, second, fn_name, A, X, Y, PS, SP, total_cycles, current_line, status_string);
+        sprintf(log_line, "%04X %02X %02X %02X %s\tA:%02X X:%02X Y:%02X P:%02X SP:%02X CYCLE:%d LINE: %d %s\n", PC, opcode, first, second, fn_name, A, X, Y, PS, SP, total_cycles, current_line, status_string);
     }
     else if (addressing[opcode].bytes == 2)
     {
-        sprintf(log_line, "%04x %02x %02x    %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d LINE: %d %s\n", PC, opcode, first, fn_name, A, X, Y, PS, SP, total_cycles, current_line, status_string);
+        sprintf(log_line, "%04X %02X %02X    %s\tA:%02X X:%02X Y:%02X P:%02X SP:%02X CYCLE:%d LINE: %d %s\n", PC, opcode, first, fn_name, A, X, Y, PS, SP, total_cycles, current_line, status_string);
     }
     else
     {
-        sprintf(log_line, "%04x %02x       %s\tA:%02x X:%02x Y:%02x P:%02x SP:%02x CYCLE:%d LINE: %d %s\n", PC, opcode, fn_name, A, X, Y, PS, SP, total_cycles, current_line, status_string);
+        sprintf(log_line, "%04X %02X       %s\tA:%02X X:%02X Y:%02X P:%02X SP:%02X CYCLE:%d LINE: %d %s\n", PC, opcode, fn_name, A, X, Y, PS, SP, total_cycles, current_line, status_string);
     }
 
     // for (int i = 0; log_line[i] != '\0'; i++)
@@ -105,9 +105,9 @@ void dump_ram()
     {
         if ((i % 8) == 0)
         {
-            fprintf(dump_file, "\n%04x ", i);
+            fprintf(dump_file, "\n%04X ", i);
         }
-        fprintf(dump_file, "%02x ", RAM[i]);
+        fprintf(dump_file, "%02X ", RAM[i]);
     }
 }
 
@@ -120,6 +120,7 @@ void main(int argc, char **argv)
 
     init_ram();
     load_rom(argv[1]);
+    int cnt = 0;
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_writes/cpu_dummy_writes_oam.nes");
     // load_rom("/home/gabriele/Downloads/cpu_test/cpu_dummy_reads.nes");
     // load_rom("/home/gabriele/Downloads/dk.nes");
@@ -179,6 +180,11 @@ void main(int argc, char **argv)
         strncpy(fn_name, addressing[opcode].name, 3);
 
         // log_to_screen(opcode, first, second, fn_name);
+
+        cnt++;
+        if (cnt == 205) {
+            int d = 0;
+        }
 
         void (*fun_ptr)(unsigned char, unsigned char, unsigned char) = addressing[opcode].opcode_fun;
         (*fun_ptr)(first, second, addressing[opcode].addr_mode);

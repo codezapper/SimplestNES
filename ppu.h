@@ -20,7 +20,7 @@ unsigned char read_oamdata();
 void write_oamdata(unsigned char value);
 void write_ppudata(unsigned char value);
 void write_ppuscroll(unsigned char value);
-void write_ppuaddress(unsigned char value);
+void write_v(unsigned char value);
 unsigned char read_ppudata();
 void clear_vblank();
 void write_dma(unsigned char address, unsigned char value);

@@ -106,10 +106,10 @@ void cpu_write(unsigned char first, unsigned char second, unsigned char addr_mod
         // If it's a PPU register, they're mirrored up to 0x3FFF
         // Maybe 0x2000-0x3FFF ?
         if ((address >= 0x2000) && (address <= 0x3FFF)) {
-            if (cycles < 29658) {
-                return;
-            }
             unsigned char offset = address % 8;
+            // if ((cycles < 29658) && (offset >= 3)) {
+            //     return;
+            // }
             switch (offset) {
                 case 0:
                     return write_ppuctrl(value);
@@ -120,7 +120,7 @@ void cpu_write(unsigned char first, unsigned char second, unsigned char addr_mod
                 case 5:
                     return write_ppuscroll(value);
                 case 6:
-                    return write_ppuaddress(value);
+                    return write_v(value);
                 case 7:
                     return write_ppudata(value);
             }
@@ -162,7 +162,7 @@ void ppu_write(uint16_t address, unsigned char value) {
             write_ppuscroll(value);
             break;
         case PPUADDR:
-            write_ppuaddress(value);
+            write_v(value);
             break;
         case PPUDATA:
             write_ppudata(value);

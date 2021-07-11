@@ -50,6 +50,8 @@ unsigned char PS = 0b00000100;
 int cycles_cnt = 0;
 unsigned char extra_value = 0;
 
+extern unsigned char interrupt_occurred;
+
 //extern struct addressing_data addressing[0xFF];
 
 void stack_push(unsigned char value) {
@@ -85,7 +87,24 @@ void init_ram()
     memset(RAM, 0xFF, sizeof(RAM));
 }
 
+void set_OF(unsigned char first, unsigned char second, unsigned char carry) {
+    unsigned char first_7 = check_bit(first, 7);
+    unsigned char second_7 = check_bit(second, 7);
+
+    if (!first_7 && !second_7 && carry) {
+        PS = set_bit(PS, OF);
+        return;
+    }
+    if (first_7 && second_7 && !carry) {
+        PS = set_bit(PS, OF);
+        return;
+    }
+    PS = clear_bit(PS, OF);
+}
+
 void ADC(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    // set_OF(first, second, check_bit(PS, CF));
+
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
     PS = clear_bit(PS, OF);
@@ -175,7 +194,7 @@ void BEQ(unsigned char first, unsigned char second, unsigned char addr_mode) {
 
 void BIT(unsigned char first, unsigned char second, unsigned char addr_mode) {
     unsigned char value = cpu_read(first, second, addr_mode);
-    int result = A & value;
+    unsigned char result = A & value;
 
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
@@ -193,6 +212,8 @@ void BIT(unsigned char first, unsigned char second, unsigned char addr_mode) {
         if (check_bit(value, 6)) {
             PS = set_bit(PS, OF);
         }
+    } else {
+        int d = 0;
     }
 }
 
@@ -439,6 +460,9 @@ void LDA(unsigned char first, unsigned char second, unsigned char addr_mode) {
     PS = clear_bit(PS, NF);
 
     A = cpu_read(first, second, addr_mode);
+    if (A == 0x7c) {
+        int d = 0;
+    }
     if (0 == A) {
         PS = set_bit(PS, ZF);
     }
@@ -518,10 +542,11 @@ void PHA(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void PHP(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    // unsigned char value = set_bit(PS, B4);
+    unsigned char value = set_bit(PS, B4);
+    value = set_bit(value, B5);
 
-    // stack_push(value);
-    stack_push(PS);
+    stack_push(value);
+    // stack_push(PS);
 }
 
 void PLA(unsigned char first, unsigned char second, unsigned char addr_mode) {
@@ -987,7 +1012,8 @@ void NMI() {
 }
 
 void IRQ() {
-    if (check_bit(PS, ID) == 0) {
+    // TODO: Keep track of the generated IRQ(s?) and service them
+    if ((check_bit(PS, ID) == 0) && (interrupt_occurred == IRQ_INT)) {
         push_PC();
         stack_push(PS);
 

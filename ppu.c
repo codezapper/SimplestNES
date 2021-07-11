@@ -54,7 +54,7 @@ unsigned char VRAM[0xFFFF];
 
 unsigned char ppuctrl = 0x80;
 unsigned char ppumask = 0;
-unsigned char ppustatus = 0x80;
+unsigned char ppustatus = 0x0;
 unsigned char oamaddr = 0;
 unsigned char oamdata[OAMSIZE];
 unsigned char ppuscroll;
@@ -63,13 +63,33 @@ unsigned char oamdma;
 
 unsigned char ppudata_buffer = 0;
 
-uint16_t t_address = 0;
-unsigned char t_address_toggle = HIGH;
-unsigned char t_scroll_toggle = HIGH;
+// TODO:
+// Use "v" as the VRAM address when reading/writing
+// Use "t" as the latch for determining address
+// Copy "t" to "v" when the frame starts
+
+// QUOTE:
+/*
+$2000 updates the name table bits in the VRAM address. When accessing name tables, the address register has the following format: 0010NNYY YYYXXXXX
+$2006 writes affect bits 0 through 13 (and clear bits 14 and 15), $2005 writes change the X and Y bits, and $2000 writes change the NN bits.
+One weird aspect of the PPU is that it uses its addresses registers when rendering the image, which is why the scroll settings (set via $2000 and $2005) affect the address registers. Fir rendering purposes, the PPU address registers (t and v have the following format:
+
+0yyyNNYY YYYXXXXX
+
+XXXXX: coarse X scroll;
+YYYYY: coarse Y scroll;
+NN: name table;
+yyy: fine Y scroll;
+(the fine X scroll is kept elsewhere)
+
+When the frame starts, the PPU will automatically copy the value from t to v and use that to determine what part of the background to render, as specified by the bits above.
+*/
+
+uint16_t t = 0;
+uint16_t v = 0;
+unsigned char t_toggle = HIGH;
 
 unsigned char attr_table[64];
-
-uint16_t ppuaddress = 0;
 
 unsigned char interrupt_occurred = 0;
 unsigned char interrupt_handled = 0;
@@ -121,8 +141,8 @@ void write_ppumask(unsigned char value) {
 unsigned char read_ppustatus() {
 	unsigned char current = ppustatus;
 	clear_vblank();
-	t_address_toggle = HIGH;
-	t_scroll_toggle = HIGH;
+	t = 0;
+	t_toggle = HIGH;
     return current;
 }
 
@@ -147,43 +167,46 @@ void write_dma(unsigned char address, unsigned char value) {
 }
 
 void write_ppudata(unsigned char value) {
-    VRAM[ppuaddress] = value;
+    VRAM[v] = value;
+	if (value == 0x24) {
+		int c = 0;
+	}
 	if (check_bit(ppuctrl, 2) == 1) {
-		ppuaddress += 32;
+		v += 32;
 	} else {
-		ppuaddress++;
+		v++;
 	}
 }
 
 void write_ppuscroll(unsigned char value) {
-	if (t_scroll_toggle == HIGH) {
-		t_scroll_toggle = LOW;
+	if (t_toggle == HIGH) {
+		t_toggle = LOW;
 		ppuscroll = value << 8;
 	} else {
-		t_scroll_toggle = HIGH;
+		t_toggle = HIGH;
 		ppuscroll |= value;
 	}
 }
 
-void write_ppuaddress(unsigned char value) {
-	if (t_address_toggle == HIGH) {
-		t_address_toggle = LOW;
-		t_address = value << 8;
-		if (check_bit(ppustatus, 7) == 0) {
-			ppuaddress = t_address;
-		}
+void write_v(unsigned char value) {
+	if (t_toggle == HIGH) {
+		t_toggle = LOW;
+		t = value << 8;
+		// v = t;
 	} else {
-		t_address_toggle = HIGH;
-		ppuaddress |= value;
-		ppuaddress &= 0x3FFF;
-		// ppuaddress = t_address | value;
+		t_toggle = HIGH;
+		t |= value;
+		t &= 0x3FFF;
+		if (check_bit(ppustatus, 7) == 0) {
+			v = t;
+		}
 	}
 }
 
 unsigned char read_ppudata() {
 	unsigned char value = ppudata_buffer;
-	ppudata_buffer = VRAM[ppuaddress];
-	ppuaddress++;
+	ppudata_buffer = VRAM[v];
+	v++;
     return value;
 }
 
@@ -198,8 +221,8 @@ void set_vblank() {
 
 void clear_vblank() {
 	ppustatus = clear_bit(ppustatus, 7);
-	t_address_toggle = HIGH;
-	t_scroll_toggle = HIGH;
+	t_toggle = HIGH;
+	t_toggle = HIGH;
 }
 
 int can_generate_nmi() {
@@ -332,13 +355,27 @@ void show_tile(int bank, int tile_n, int row, int col) {
 	}
 }
 
+void dump_vram()
+{
+    FILE *dump_file = fopen("dumpv.txt", "w");
+    for (int i = 0; i < sizeof(RAM); i++)
+    {
+        if ((i % 8) == 0)
+        {
+            fprintf(dump_file, "\n%04x ", i);
+        }
+        fprintf(dump_file, "%02x ", RAM[i]);
+    }
+}
+
+
 void draw_background() {
 	int bg_bank = check_bit(ppuctrl, 4);
 	memcpy(attr_table, &VRAM[0x23C0], 64);
  //	for (int row = 0; row < 30; row++) {
 		for (int col = 0; col < 32; col++) {
 			uint16_t tile_n = VRAM[0x2000 + ( current_row * 32) + col];
-			if ((tile_n != 0x62) && (tile_n != 0x24) && (tile_n != 0)) {
+			if (tile_n != 0) {
 				int b = 0;
 			}
 			show_tile(bg_bank_address[bg_bank], tile_n, current_row, col);
@@ -362,7 +399,7 @@ void init_ppu() {
 	ppustatus = 0x80;
 	oamaddr = 0;
 	ppuscroll = 0;
-	ppuaddress = 0;
+	v = 0;
 	ppudata = 0;
 }
 
@@ -402,9 +439,12 @@ void ppu_clock(int cpu_cycles) {
 		} else if (current_line == 241) {
 			if (interrupt_occurred == 0) {
 				SDL_RenderPresent(renderer);
-				interrupt_handled = 0;
-				interrupt_occurred = NMI_INT;
+				if (can_generate_nmi()) {
+					interrupt_handled = 0;
+					interrupt_occurred = NMI_INT;
+				}
 				set_vblank();
+				v = t;
 			}
 		} else if (current_line == 261) {
 			clear_vblank();
