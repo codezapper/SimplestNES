@@ -80,20 +80,7 @@ unsigned char cpu_read(unsigned char first, unsigned char second, unsigned char 
             }
 
             if ((value >= 0x2000) && (value <= 0x3FFF)) {
-                unsigned char offset = value % 8;
-                switch (offset) {
-                    case 2:
-                        return read_ppustatus();
-                        break;
-                    case 4:
-                        return read_oamdata();
-                        break;
-                    case 7:
-                        return read_ppudata();
-                        break;
-                }
-            } else if (value == 0x4014) {
-                return ppu_read(value);
+                ppu_read(value);
             } else {
                 return RAM[value];
             }
@@ -133,12 +120,16 @@ void cpu_write(unsigned char first, unsigned char second, unsigned char addr_mod
 }
 
 unsigned char ppu_read(uint16_t address) {
-    switch (address) {
+    uint16_t offset = (address % 8) + 0x2000;
+    switch (offset) {
         case PPUSTATUS:
             return read_ppustatus();
+            break;
+        case OAMDATA:
+            return read_oamdata();
+            break;
         case PPUDATA:
             return read_ppudata();
-        case OAMDMA:
             break;
     }
     return VRAM[address];
