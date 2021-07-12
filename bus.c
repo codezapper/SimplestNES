@@ -4,6 +4,8 @@
 extern unsigned char VRAM[0xFFFF];
 extern int cycles;
 
+extern unsigned char write_enabled;
+
 uint16_t get_address_from_params(unsigned char first, unsigned char second, unsigned char addr_mode) {
     uint16_t high;
     uint16_t low;
@@ -107,9 +109,9 @@ void cpu_write(unsigned char first, unsigned char second, unsigned char addr_mod
         // Maybe 0x2000-0x3FFF ?
         if ((address >= 0x2000) && (address <= 0x3FFF)) {
             unsigned char offset = address % 8;
-            // if ((cycles < 29658) && (offset >= 3)) {
-            //     return;
-            // }
+            if ((write_enabled == 0) && (offset >= 3)) {
+                return;
+            }
             switch (offset) {
                 case 0:
                     return write_ppuctrl(value);

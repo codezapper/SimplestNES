@@ -10,6 +10,12 @@
 #define PPUDATA 	0x2007
 #define OAMDMA 	    0x4014
 
+#define MASK_GREYSCALE      0
+#define MASK_BG_LEFT        1
+#define MASK_FG_LEFT        2
+#define MASK_BG_ENABLE      3
+#define MASK_FG_ENABLE      4
+
 void init_ppu();
 void ppu_clock(int cycles);
 void write_ppuctrl(unsigned char value);

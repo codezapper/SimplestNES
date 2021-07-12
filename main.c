@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <SDL.h>
+
 #include "addressing.h"
 #include "cpu.h"
 #include "ppu.h"
@@ -43,15 +45,15 @@ void log_to_screen(unsigned char opcode, unsigned char first, unsigned char seco
     status_string[7] = check_bit(PS, 0) ? 'C' : 'c';
     if (addressing[opcode].bytes == 3)
     {
-        sprintf(log_line, "%04X %02X %02X %02X %s\tA:%02X X:%02X Y:%02X P:%02X SP:%02X CYCLE:%d LINE: %d %s\n", PC, opcode, first, second, fn_name, A, X, Y, PS, SP, total_cycles, current_line, status_string);
+        sprintf(log_line, "%04X %02X %02X %02X %s\tA:%02X X:%02X Y:%02X P:%02X SP:%02X LINE: %03d %s\n", PC, opcode, first, second, fn_name, A, X, Y, PS, SP, current_line, status_string);
     }
     else if (addressing[opcode].bytes == 2)
     {
-        sprintf(log_line, "%04X %02X %02X    %s\tA:%02X X:%02X Y:%02X P:%02X SP:%02X CYCLE:%d LINE: %d %s\n", PC, opcode, first, fn_name, A, X, Y, PS, SP, total_cycles, current_line, status_string);
+        sprintf(log_line, "%04X %02X %02X    %s\tA:%02X X:%02X Y:%02X P:%02X SP:%02X LINE: %03d %s\n", PC, opcode, first, fn_name, A, X, Y, PS, SP, current_line, status_string);
     }
     else
     {
-        sprintf(log_line, "%04X %02X       %s\tA:%02X X:%02X Y:%02X P:%02X SP:%02X CYCLE:%d LINE: %d %s\n", PC, opcode, fn_name, A, X, Y, PS, SP, total_cycles, current_line, status_string);
+        sprintf(log_line, "%04X %02X       %s\tA:%02X X:%02X Y:%02X P:%02X SP:%02X LINE: %03d %s\n", PC, opcode, fn_name, A, X, Y, PS, SP, current_line, status_string);
     }
 
     // for (int i = 0; log_line[i] != '\0'; i++)
@@ -154,6 +156,18 @@ void main(int argc, char **argv)
     // PC = 34187;
     while (PC > 0)
     {
+        SDL_Event e;
+		SDL_PollEvent(&e);
+		// TODO: Exit gracefully
+		if (e.type == SDL_QUIT) {
+			exit(1);
+		}
+		if (e.type == SDL_KEYDOWN) {
+			if (e.key.keysym.sym == 0x1B) {
+				exit(1);
+			}
+		}
+
         if (must_handle_interrupt(interrupt_occurred))
         {
             if (interrupt_occurred == NMI_INT)
@@ -182,7 +196,7 @@ void main(int argc, char **argv)
         // log_to_screen(opcode, first, second, fn_name);
 
         cnt++;
-        if (cnt == 205) {
+        if (PC == 0xe944) {
             int d = 0;
         }
 

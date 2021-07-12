@@ -204,16 +204,14 @@ void BIT(unsigned char first, unsigned char second, unsigned char addr_mode) {
         PS = set_bit(PS, ZF);
     }
 
+    // PS = (PS & 0x3F) | (value & 0xC0);
+
     if (check_bit(value, 7)) {
         PS = set_bit(PS, NF);
     }
 
-    if (addr_mode != IMMEDIATE) {
-        if (check_bit(value, 6)) {
-            PS = set_bit(PS, OF);
-        }
-    } else {
-        int d = 0;
+    if (check_bit(value, 6)) {
+        PS = set_bit(PS, OF);
     }
 }
 
@@ -839,6 +837,8 @@ void ANC(unsigned char first, unsigned char second, unsigned char addr_mode) {
     }
 }
 
+// This looks different, check documentation
+
 void ARR(unsigned char first, unsigned char second, unsigned char addr_mode) {
     AND(first, second, addr_mode);
     int value = cpu_read(first, second, addr_mode);
@@ -1006,7 +1006,7 @@ void NMI() {
     stack_push(PS);
 
     PS = set_bit(PS, B5);
-    PS = set_bit(PS, ID);
+    // PS = set_bit(PS, ID);
 
     PC = (RAM[0xFFFB] << 8) | RAM[0xFFFA];
 }
