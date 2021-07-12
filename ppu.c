@@ -171,28 +171,41 @@ void write_dma(unsigned char address, unsigned char value) {
 }
 
 void mirror_v() {
-	if (mirroring == 0) { // Horizontal
-		if ((v >= 9216) && (v <= (9216+1024))) {
-			v -= 1024;
-		} else if ((v >= 11264) && (v <= (11264+1024))) {
-			v -= 1024;
+	if ((v >= 0x3F00) && (v <= 0x3FFF)) {
+		v &= 0x001F;
+		switch (v) {
+			case 0x10:
+				v = 0x0;
+				break;
+			case 0x14:
+				v = 0x04;
+				break;
+			case 0x18:
+				v = 0x08;
+				break;
+			case 0x1C:
+				v = 0x0C;
+				break;
 		}
-	} else { // Vertical
-		if ((v >= 10240) && (v <= (10240 + 1024))) {
-			v -= 2048;
-		} else if ((v >= 11264) && (v <= 11264 + 1024)) {
-			v -= 2048;
+		v += 0x3F00;
+	} else {
+		if (mirroring == 0) { // Horizontal
+			if ((v >= 0x2400) && (v <= (0x2400+0x400))) {
+				v -= 0x400;
+			} else if ((v >= 0x2C00) && (v <= (0x2C00+0x400))) {
+				v -= 0x400;
+			}
+		} else { // Vertical
+			if ((v >= 0x2800) && (v <= (0x2800 + 0x400))) {
+				v -= 0x800;
+			} else if ((v >= 0x2C00) && (v <= 0x2C00 + 0x400)) {
+				v -= 0x800;
+			}
 		}
 	}
 }
 
 void write_ppudata(unsigned char value) {
-// Horizontal mirroring: $2000 equals $2400 and $2800 equals $2C00 (e.g. Kid Icarus)
-//  Vertical mirroring: $2000 equals $2800 and $2400 equals $2C00 (e.g. Super Mario Bros.)
-
-// Horizontal mirroring: 8192 equals 9216 and 10240 equals 11264 (e.g. Kid Icarus)
-//  Vertical mirroring: 8192 equals 10240 and 9216 equals 11264 (e.g. Super Mario Bros.)
-
 	mirror_v();
 
     VRAM[v] = value;
