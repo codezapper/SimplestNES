@@ -11,6 +11,7 @@ struct ROM rom;
 struct ROM20 rom20;
 
 unsigned char is_nes_20 = 0;
+unsigned char mirroring = 0;
 
 void load_rom(char *filename) {
     FILE *rom_file = fopen(filename, "rb");
@@ -29,7 +30,6 @@ void load_rom(char *filename) {
         is_nes_20 = 1;
     }
 
-    // int mirroring = check_bit(rom.header.flags_6, 0);
     // int battery_backed = check_bit(rom.header.flags_6, 1);
     // int trainer = check_bit(rom.header.flags_6, 2);
     // int ignore_mirroring = check_bit(rom.header.flags_6, 3);
@@ -69,6 +69,7 @@ void load_rom(char *filename) {
     if (is_nes_20) {
         struct HEADER20 header;
         memcpy(&header, rom.header, 16);
+        mirroring = check_bit(header.flags_6, 0);
 
         int prg_size = ((header.rom_size_msb & 0b00001111) << 8) | header.prg_rom_lsb;
         int chr_size = ((header.rom_size_msb & 0b11110000) << 8) | header.chr_rom_lsb;
@@ -84,6 +85,7 @@ void load_rom(char *filename) {
     } else {
         struct HEADER header;
         memcpy(&header, rom.header, 16);
+        mirroring = check_bit(header.flags_6, 0);
         if (header.prg_blocks > 1) {
             fread(&RAM[0x8000], 1, 16*1024, rom_file);
             fread(&RAM[0xC000], 1, 16*1024, rom_file);

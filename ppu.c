@@ -96,6 +96,8 @@ unsigned char attr_table[64];
 unsigned char interrupt_occurred = 0;
 unsigned char interrupt_handled = 0;
 
+extern unsigned char mirroring;
+
 SDL_Renderer *renderer;
 SDL_Window *window;
 SDL_Texture *texture;
@@ -168,9 +170,33 @@ void write_dma(unsigned char address, unsigned char value) {
 	oamdata[address] = value;
 }
 
+void mirror_v() {
+	if (mirroring == 0) { // Horizontal
+		if ((v >= 9216) && (v <= (9216+1024))) {
+			v -= 1024;
+		} else if ((v >= 11264) && (v <= (11264+1024))) {
+			v -= 1024;
+		}
+	} else { // Vertical
+		if ((v >= 10240) && (v <= (10240 + 1024))) {
+			v -= 2048;
+		} else if ((v >= 11264) && (v <= 11264 + 1024)) {
+			v -= 2048;
+		}
+	}
+}
+
 void write_ppudata(unsigned char value) {
+// Horizontal mirroring: $2000 equals $2400 and $2800 equals $2C00 (e.g. Kid Icarus)
+//  Vertical mirroring: $2000 equals $2800 and $2400 equals $2C00 (e.g. Super Mario Bros.)
+
+// Horizontal mirroring: 8192 equals 9216 and 10240 equals 11264 (e.g. Kid Icarus)
+//  Vertical mirroring: 8192 equals 10240 and 9216 equals 11264 (e.g. Super Mario Bros.)
+
+	mirror_v();
+
     VRAM[v] = value;
-	if (value == 0x24) {
+	if (v == 0x2F12) {
 		int c = 0;
 	}
 	if (check_bit(ppuctrl, 2) == 1) {
@@ -206,8 +232,13 @@ void write_v(unsigned char value) {
 }
 
 unsigned char read_ppudata() {
+	mirror_v();
+
 	unsigned char value = ppudata_buffer;
 	ppudata_buffer = VRAM[v];
+	if (v >= 0x3F00) {
+		value = VRAM[v];
+	}
 	v++;
     return value;
 }
@@ -418,6 +449,9 @@ void ppu_clock(int cpu_cycles) {
 	int end_cycles = cpu_cycles * 3;
 
 	for (int i = 0; i < end_cycles; i++) {
+		if ((total_cpu_cycles % 2270) == 0) {
+			clear_vblank();
+		}
 		total_cycles++;
 		ppu_cycles++;
 
