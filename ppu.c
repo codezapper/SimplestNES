@@ -206,11 +206,6 @@ void mirror_v() {
 }
 
 void write_ppudata(unsigned char value) {
-	// if ((v == 0x2F12) || (v == 0x3F12)) {
-	if (v > 0x2200) {
-		int c = 0;
-	}
-
 	mirror_v();
 
     VRAM[v] = value;
