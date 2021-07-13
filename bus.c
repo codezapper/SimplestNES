@@ -6,6 +6,8 @@ extern int cycles;
 
 extern unsigned char write_enabled;
 
+unsigned char open_bus;
+
 uint16_t get_address_from_params(unsigned char first, unsigned char second, unsigned char addr_mode) {
     uint16_t high;
     uint16_t low;
@@ -80,7 +82,7 @@ unsigned char cpu_read(unsigned char first, unsigned char second, unsigned char 
             }
 
             if ((value >= 0x2000) && (value <= 0x3FFF)) {
-                ppu_read(value);
+                return ppu_read(value);
             } else {
                 return RAM[value];
             }
@@ -92,12 +94,13 @@ void cpu_write(unsigned char first, unsigned char second, unsigned char addr_mod
         A = value;
     } else {
         uint16_t address = get_address_from_params(first, second, addr_mode);
+        open_bus = value;
         // If it's a PPU register, they're mirrored up to 0x3FFF
         // Maybe 0x2000-0x3FFF ?
         if ((address >= 0x2000) && (address <= 0x3FFF)) {
             unsigned char offset = address % 8;
             if ((write_enabled == 0) && (offset >= 3)) {
-                return;
+                // return;
             }
             switch (offset) {
                 case 0:
@@ -132,7 +135,7 @@ unsigned char ppu_read(uint16_t address) {
             return read_ppudata();
             break;
     }
-    return VRAM[address];
+    return open_bus;
 }
 
 void ppu_write(uint16_t address, unsigned char value) {
