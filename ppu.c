@@ -206,12 +206,14 @@ void mirror_v() {
 }
 
 void write_ppudata(unsigned char value) {
+	// if ((v == 0x2F12) || (v == 0x3F12)) {
+	if (v > 0x2200) {
+		int c = 0;
+	}
+
 	mirror_v();
 
     VRAM[v] = value;
-	if (v == 0x2F12) {
-		int c = 0;
-	}
 	if (check_bit(ppuctrl, 2) == 1) {
 		v += 32;
 	} else {
@@ -249,7 +251,8 @@ unsigned char read_ppudata() {
 
 	unsigned char value = ppudata_buffer;
 	ppudata_buffer = VRAM[v];
-	if (v >= 0x3F00) {
+	if ((v & 0x3F00) == 0x3F00) {
+		ppudata_buffer = VRAM[v-0x1000];
 		value = VRAM[v];
 	}
 	v++;
@@ -362,6 +365,19 @@ void set_pixel(int x, int y, int color_index, int palette_index) {
 	framebuffer[offset + 3] = SDL_ALPHA_OPAQUE;
 }
 
+void dump_vram()
+{
+    FILE *dump_file = fopen("dumpv.txt", "w");
+    for (int i = 0; i < sizeof(VRAM); i++)
+    {
+        if ((i % 8) == 0)
+        {
+            fprintf(dump_file, "\n%04x ", i);
+        }
+        fprintf(dump_file, "%02x ", VRAM[i]);
+    }
+}
+
 void show_tile(int bank, int tile_n, int row, int col) {
 	int tile[16];
 	int start_x = col * 8;
@@ -403,20 +419,6 @@ void show_tile(int bank, int tile_n, int row, int col) {
 	}
 }
 
-void dump_vram()
-{
-    FILE *dump_file = fopen("dumpv.txt", "w");
-    for (int i = 0; i < sizeof(RAM); i++)
-    {
-        if ((i % 8) == 0)
-        {
-            fprintf(dump_file, "\n%04x ", i);
-        }
-        fprintf(dump_file, "%02x ", RAM[i]);
-    }
-}
-
-
 void draw_background() {
 	if (check_bit(ppumask, 3) == 0) {
 		return;
@@ -424,15 +426,13 @@ void draw_background() {
 
 	int bg_bank = check_bit(ppuctrl, 4);
 	memcpy(attr_table, &VRAM[0x23C0], 64);
- //	for (int row = 0; row < 30; row++) {
+ 	for (int row = 0; row < 30; row++) {
 		for (int col = 0; col < 32; col++) {
-			uint16_t tile_n = VRAM[0x2000 + ( current_row * 32) + col];
-			if (tile_n == 0x24) {
-				int b = 0;
-			}
-			show_tile(bg_bank_address[bg_bank], tile_n, current_row, col);
+			uint16_t tile_n = VRAM[0x2000 + ( row * 32) + col];
+
+			show_tile(bg_bank_address[bg_bank], tile_n, row, col);
 		}
-	// }
+	}
 
 
 	SDL_UpdateTexture(texture, NULL, framebuffer, WIDTH * 4);
@@ -499,7 +499,7 @@ void ppu_clock(int cpu_cycles) {
 					interrupt_handled = 0;
 					interrupt_occurred = NMI_INT;
 				}
-				v = t;
+				// v = t;
 			}
 		} else if ((current_line == 261) && (ppu_cycles == 1)) {
 			clear_vblank();
