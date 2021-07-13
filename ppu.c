@@ -323,17 +323,17 @@ void update_bg_palette() {
 	bg_palette[0][2] = VRAM[0x3F02];
 	bg_palette[0][3] = VRAM[0x3F03];
 
-	bg_palette[1][0] = VRAM[0x3F04];
+	bg_palette[1][0] = VRAM[0x3F00];
 	bg_palette[1][1] = VRAM[0x3F05];
 	bg_palette[1][2] = VRAM[0x3F06];
 	bg_palette[1][3] = VRAM[0x3F07];
 
-	bg_palette[2][0] = VRAM[0x3F08];
+	bg_palette[2][0] = VRAM[0x3F00];
 	bg_palette[2][1] = VRAM[0x3F09];
 	bg_palette[2][2] = VRAM[0x3F0A];
 	bg_palette[2][3] = VRAM[0x3F0B];
 
-	bg_palette[3][0] = VRAM[0x3F0C];
+	bg_palette[3][0] = VRAM[0x3F00];
 	bg_palette[3][1] = VRAM[0x3F0D];
 	bg_palette[3][2] = VRAM[0x3F0E];
 	bg_palette[3][3] = VRAM[0x3F0F];
@@ -377,25 +377,31 @@ void show_tile(int bank, int tile_n, int row, int col) {
 	int tile[16];
 	int start_x = col * 8;
 	int start_y = row * 8;
-	// if (tile_n == 98) {
-	// 	memcpy(attr_table, &VRAM[0x23C0], 64);
-	// 	int attr_x = col / 16;
-	// 	int attr_y = row / 16;
-	// 	unsigned char attr_byte = attr_table[attr_x * attr_y];
-	// 	unsigned char sq[4] = {
-	// 		attr_byte & 0b00000011,
-	// 		(attr_byte & 0b00001100) >> 2,
-	// 		(attr_byte & 0b00110000) >> 4,
-	// 		(attr_byte & 0b11000000) >> 6
-	// 	};
 
-	// 	// int attr_table_idx = row / 4 * 8 +  col / 4;
-	// 	// int attr_byte = VRAM[0x3c0 + attr_table_idx];  // note: still using hardcoded first nametable
+	int block_x = col / 4;
+	int block_y = row / 4;
 
-	// 	if (attr_byte > 0) {
-	// 		int a = 0;
-	// 	}
-	// }
+	uint16_t attr_addr = (block_y * 8) + block_x;
+
+	unsigned char attr_byte = attr_table[attr_addr];
+
+	unsigned char bottom_right = attr_byte >> 6;
+	unsigned char bottom_left = (attr_byte & 0x30) >> 4;
+	unsigned char upper_right = (attr_byte & 0x0C) >> 2;
+	unsigned char upper_left = attr_byte & 0x03;
+
+	unsigned char corners[4] = {
+		(attr_byte & 0x03), (attr_byte & 0x0C) >> 2, (attr_byte & 0x30) >> 4, attr_byte >> 6
+	};
+
+	unsigned char corner_x = col % 2;
+	unsigned char corner_y = row % 2;
+
+	unsigned char which_palette = corners[corner_x + corner_y];
+
+	if ((col == 5) && (row == 4) && (tile_n == 0xb5)) {
+		int d = 0;
+	}
 
 	for (int y = 0; y <= 7; y++) {
 		unsigned char upper = VRAM[bank + tile_n * 16 + y];
@@ -405,11 +411,12 @@ void show_tile(int bank, int tile_n, int row, int col) {
 			int value = ((1 & upper) << 1) | (1 & lower);
 			upper >>= 1;
 			lower >>= 1;
-			// int color_index = VRAM[0x3F00] + (color_index | (attribute_index << 2));
+
 			if ((tile_n == 0x24) && (value != 0)) {
 				int d = 0;
 			}
-			set_pixel(x + start_x, y + start_y, value, 0);
+
+			set_pixel(x + start_x, y + start_y, value, which_palette);
 		}
 	}
 }
@@ -421,13 +428,13 @@ void draw_background() {
 
 	int bg_bank = check_bit(ppuctrl, 4);
 	memcpy(attr_table, &VRAM[0x23C0], 64);
- 	for (int row = 0; row < 30; row++) {
+ 	// for (int row = 0; row < 30; row++) {
 		for (int col = 0; col < 32; col++) {
-			uint16_t tile_n = VRAM[0x2000 + ( row * 32) + col];
+			uint16_t tile_n = VRAM[0x2000 + ( current_row * 32) + col];
 
-			show_tile(bg_bank_address[bg_bank], tile_n, row, col);
+			show_tile(bg_bank_address[bg_bank], tile_n, current_row, col);
 		}
-	}
+	// }
 
 
 	SDL_UpdateTexture(texture, NULL, framebuffer, WIDTH * 4);
