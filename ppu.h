@@ -31,3 +31,4 @@ unsigned char read_ppudata();
 void clear_vblank();
 void write_dma(unsigned char address, unsigned char value);
 void draw_background();
+void update_bg_palette();
