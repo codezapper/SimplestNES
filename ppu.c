@@ -198,7 +198,7 @@ void mirror_v() {
 }
 
 void write_ppudata(unsigned char value) {
-	mirror_v();
+	// mirror_v();
 
 	if (v >= 0x2000) {
 		int e = 0;
@@ -243,7 +243,7 @@ void write_v(unsigned char value) {
 }
 
 unsigned char read_ppudata() {
-	mirror_v();
+	// mirror_v();
 
 	unsigned char value = ppudata_buffer;
 	ppudata_buffer = VRAM[v];
@@ -371,14 +371,7 @@ void show_tile(int bank, int tile_n, int row, int col) {
 	int block_y = row / 4;
 
 	uint16_t attr_addr = (block_y * 8) + block_x;
-
 	unsigned char attr_byte = attr_table[attr_addr];
-
-	unsigned char bottom_right = attr_byte >> 6;
-	unsigned char bottom_left = (attr_byte & 0x30) >> 4;
-	unsigned char upper_right = (attr_byte & 0x0C) >> 2;
-	unsigned char upper_left = attr_byte & 0x03;
-
 	unsigned char corners[4] = {
 		(attr_byte & 0x03), (attr_byte & 0x0C) >> 2, (attr_byte & 0x30) >> 4, attr_byte >> 6
 	};
@@ -388,14 +381,14 @@ void show_tile(int bank, int tile_n, int row, int col) {
 
 	unsigned char which_palette = corners[corner_x + corner_y];
 
-	// if ((col == 4) && (row == 19) && (tile_n == 0x4c)) {
-	if ((tile_n == 0x4c)) {
+	if ((col == 0x5) && (row == 0x19) && (tile_n == 0x4e)) {
+	// if ((tile_n == 0x4c)) {
 		int d = 0;
 	}
 
 	for (int y = 0; y <= 7; y++) {
-		unsigned char upper = VRAM[bank + tile_n * 0x10 + y];
-		unsigned char lower = VRAM[bank + tile_n * 0x10 + y + 8];
+		unsigned char upper = VRAM[bank + tile_n * 0x10 + y + 8];
+		unsigned char lower = VRAM[bank + tile_n * 0x10 + y];
 
 		for (int x = 7; x >= 0; x--) {
 			int value = ((1 & upper) << 1) | (1 & lower);
