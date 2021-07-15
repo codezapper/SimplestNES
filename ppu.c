@@ -164,41 +164,55 @@ void write_dma(unsigned char address, unsigned char value) {
 	oamdata[address] = value;
 }
 
-void mirror_v() {
+void mirror_palette() {
 	if ((v >= 0x3F00) && (v <= 0x3FFF)) {
 		switch (v) {
 			case 0x3F10:
-				v = 0x3F00;
+				VRAM[0x3F00] = VRAM[v];
+				break;
+			case 0x3F00:
+				VRAM[0x3F10] = VRAM[v];
 				break;
 			case 0x3F14:
-				v = 0x3F04;
+				VRAM[0x3F04] = VRAM[v];
+				break;
+			case 0x3F04:
+				VRAM[0x3F14] = VRAM[v];
 				break;
 			case 0x3F18:
-				v = 0x3F08;
+				VRAM[0x3F08] = VRAM[v];
+				break;
+			case 0x3F08:
+				VRAM[0x3F18] = VRAM[v];
 				break;
 			case 0x3F1C:
-				v = 0x3F0C;
+				VRAM[0x3F0C] = VRAM[v];
+				break;
+			case 0x3F0C:
+				VRAM[0x3F1C] = VRAM[v];
 				break;
 		}
-	} else {
-		if (mirroring == 0) { // Horizontal
-			if ((v >= 0x2400) && (v <= (0x2400+0x400))) {
-				v -= 0x400;
-			} else if ((v >= 0x2C00) && (v <= (0x2C00+0x400))) {
-				v -= 0x400;
-			}
-		} else { // Vertical
-			if ((v >= 0x2800) && (v <= (0x2800 + 0x400))) {
-				v -= 0x800;
-			} else if ((v >= 0x2C00) && (v <= 0x2C00 + 0x400)) {
-				v -= 0x800;
-			}
+	}
+}
+
+void mirror_v() {
+	if (mirroring == 0) { // Horizontal
+		if ((v >= 0x2400) && (v <= (0x2400+0x400))) {
+			v -= 0x400;
+		} else if ((v >= 0x2C00) && (v <= (0x2C00+0x400))) {
+			v -= 0x400;
+		}
+	} else { // Vertical
+		if ((v >= 0x2800) && (v <= (0x2800 + 0x400))) {
+			v -= 0x800;
+		} else if ((v >= 0x2C00) && (v <= 0x2C00 + 0x400)) {
+			v -= 0x800;
 		}
 	}
 }
 
 void write_ppudata(unsigned char value) {
-	// mirror_v();
+	mirror_v();
 
 	if (v >= 0x2000) {
 		int e = 0;
@@ -210,6 +224,8 @@ void write_ppudata(unsigned char value) {
 	}
 
     VRAM[v] = value;
+	mirror_palette();
+
 	if (check_bit(ppuctrl, 2) == 1) {
 		v += 32;
 	} else {
@@ -243,7 +259,7 @@ void write_v(unsigned char value) {
 }
 
 unsigned char read_ppudata() {
-	// mirror_v();
+	mirror_v();
 
 	unsigned char value = ppudata_buffer;
 	ppudata_buffer = VRAM[v];
