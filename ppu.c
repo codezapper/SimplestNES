@@ -386,6 +386,10 @@ void show_tile(int bank, int tile_n, int row, int col) {
 	int block_x = col / 4;
 	int block_y = row / 4;
 
+	if ((row == 26) && (col == 1)) {
+		int d = 0;
+	}
+
 	uint16_t attr_addr = (block_y * 8) + block_x;
 	unsigned char attr_byte = attr_table[attr_addr];
 	unsigned char corners[4] = {
@@ -395,7 +399,7 @@ void show_tile(int bank, int tile_n, int row, int col) {
 	unsigned char corner_x = col % 2;
 	unsigned char corner_y = row % 2;
 
-	unsigned char which_palette = corners[corner_x + corner_y];
+	unsigned char which_palette = corners[corner_x | (corner_y << 1)];
 
 	if ((col == 0x5) && (row == 0x19) && (tile_n == 0x4e)) {
 	// if ((tile_n == 0x4c)) {
