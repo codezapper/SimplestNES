@@ -396,15 +396,8 @@ void show_tile(int bank, int tile_n, int row, int col) {
 		(attr_byte & 0x03), (attr_byte & 0x0C) >> 2, (attr_byte & 0x30) >> 4, attr_byte >> 6
 	};
 
-	unsigned char corner_x = col % 2;
-	unsigned char corner_y = row % 2;
-
-	unsigned char which_palette = corners[corner_x | (corner_y << 1)];
-
-	if ((col == 0x5) && (row == 0x19) && (tile_n == 0x4e)) {
-	// if ((tile_n == 0x4c)) {
-		int d = 0;
-	}
+	unsigned char block_id = ((col % 4) / 2) + (((row % 4) / 2) * 2);
+	unsigned char which_palette = (attr_byte >> (block_id * 2)) & 0x03;
 
 	for (int y = 0; y <= 7; y++) {
 		unsigned char upper = VRAM[bank + tile_n * 0x10 + y + 8];
@@ -438,11 +431,6 @@ void draw_background() {
  	// for (int row = 0; row < 30; row++) {
 		for (int col = 0; col < 32; col++) {
 			uint16_t tile_n = VRAM[0x2000 + ( current_row * 32) + col];
-
-			if (tile_n == 0x3f) {
-				int d = 0;
-			}
-
 			show_tile(bg_bank_address[bg_bank], tile_n, current_row, col);
 		}
 	// }
