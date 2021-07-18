@@ -430,7 +430,11 @@ void draw_background() {
 	}
 
 	int bg_bank = check_bit(ppuctrl, 4);
-	memcpy(attr_table, &VRAM[0x23C0], 64);
+	if (bg_bank == 1) {
+		memcpy(attr_table, &VRAM[0x23C0], 64);
+	} else {
+		memcpy(attr_table, &VRAM[0x27C0], 64);
+	}
  	// for (int row = 0; row < 30; row++) {
 		for (int col = 0; col < 32; col++) {
 			uint16_t tile_n = VRAM[0x2000 + ( current_row * 32) + col];
