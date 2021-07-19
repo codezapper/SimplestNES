@@ -52,6 +52,9 @@
 
 #define VBLANK_BIT			7
 
+#define FLIP_HORIZONTAL		6
+#define FLIP_VERTICAL		7
+
 extern struct ROM rom;
 extern int cycles;
 
@@ -373,7 +376,11 @@ void set_pixel(int x, int y, int color_index, int palette_index) {
 	framebuffer[offset] = B;
 	framebuffer[offset + 1] = G;
 	framebuffer[offset + 2] = R;
-	framebuffer[offset + 3] = SDL_ALPHA_OPAQUE;
+	if (palette_index == 0) {
+		framebuffer[offset + 3] = SDL_ALPHA_TRANSPARENT;
+	} else {
+		framebuffer[offset + 3] = SDL_ALPHA_OPAQUE;
+	}
 }
 
 void dump_vram()
@@ -458,6 +465,8 @@ struct OAM parsed_oam[64];
 
 void show_sprite(int bank, int tile_n, int start_x, int start_y, int attr_byte) {
 	unsigned char which_palette = (attr_byte & 0x03) + 4;
+	unsigned char flip_h = check_bit(attr_byte, FLIP_HORIZONTAL);
+	unsigned char flip_v = check_bit(attr_byte, FLIP_VERTICAL);
 
 	if (tile_n != 0) {
 		int d = 0;
@@ -467,12 +476,22 @@ void show_sprite(int bank, int tile_n, int start_x, int start_y, int attr_byte) 
 		unsigned char upper = VRAM[bank + tile_n * 0x10 + y + 8];
 		unsigned char lower = VRAM[bank + tile_n * 0x10 + y];
 
-		for (int x = 7; x >= 0; x--) {
-			int value = ((1 & upper) << 1) | (1 & lower);
-			upper >>= 1;
-			lower >>= 1;
+		if (flip_h) {
+			for (int x = 0; x < 8; x++) {
+				int value = ((1 & upper) << 1) | (1 & lower);
+				upper >>= 1;
+				lower >>= 1;
 
-			set_pixel(x + start_x, y + start_y, value, which_palette);
+				set_pixel(start_x + x, start_y + y, value, which_palette);
+			}
+		} else {
+			for (int x = 7; x >= 0; x--) {
+				int value = ((1 & upper) << 1) | (1 & lower);
+				upper >>= 1;
+				lower >>= 1;
+
+				set_pixel(start_x + x, start_y + y, value, which_palette);
+			}
 		}
 	}
 }
@@ -497,26 +516,12 @@ void draw_sprites() {
 	}
 
 	for (int i = 0; i < 64; i++) {
-// $00, $04, $08, $0C 	Sprite Y coordinate
-// $01, $05, $09, $0D 	Sprite tile #
-// $02, $06, $0A, $0E 	Sprite attribute
-// $03, $07, $0B, $0F 	Sprite X coordinate 
-		// printf("X: %03d Y: %03d TILE: %03d ATTR:%03d\n", (oamdata[i]))
-		int fg_bank = check_bit(ppuctrl, FG_TILE_SELECT);
-
 		show_sprite(bank_address[fg_bank], parsed_oam[i].tile_n, parsed_oam[i].x, parsed_oam[i].y, parsed_oam[i].attr_byte);
-		
-		// if (parsed_oam[i].tile_n != 0) {
-		// 	printf("X: %03d Y: %03d TILE: %03d ATTR:%03d\n", parsed_oam[i].x, parsed_oam[i].y, parsed_oam[i].tile_n, parsed_oam[i].attr_byte);
-		// }
 	}
 }
 
 void init_ppu() {
-	if( !init_sdl() )
-	{
-		printf( "Failed to initialize SDL!\n" );
-	}
+	init_sdl();
     memcpy(VRAM, rom.chr_rom, 0x1FFF);
 
 	ppuctrl= 0;
