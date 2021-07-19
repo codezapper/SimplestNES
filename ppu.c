@@ -472,24 +472,24 @@ void show_sprite(int bank, int tile_n, int start_x, int start_y, int attr_byte) 
 		int d = 0;
 	}
 
+	int flipper[8] = {7, 5, 3, 1, -1, -3, -5, -7};
+
 	for (int y = 0; y <= 7; y++) {
 		unsigned char upper = VRAM[bank + tile_n * 0x10 + y + 8];
 		unsigned char lower = VRAM[bank + tile_n * 0x10 + y];
 
-		if (flip_h) {
-			for (int x = 0; x < 8; x++) {
-				int value = ((1 & upper) << 1) | (1 & lower);
-				upper >>= 1;
-				lower >>= 1;
+		for (int x = 7; x >= 0; x--) {
+			int value = ((1 & upper) << 1) | (1 & lower);
+			upper >>= 1;
+			lower >>= 1;
 
-				set_pixel(start_x + x, start_y + y, value, which_palette);
-			}
-		} else {
-			for (int x = 7; x >= 0; x--) {
-				int value = ((1 & upper) << 1) | (1 & lower);
-				upper >>= 1;
-				lower >>= 1;
-
+			if (flip_h && !flip_v) {
+				set_pixel(start_x + x - flipper[7 - x], start_y + y, value, which_palette);
+			} else if (flip_v && !flip_h) {
+				set_pixel(start_x + x, start_y + y + flipper[y], value, which_palette);
+			} else if (flip_v && flip_h) {
+				set_pixel(start_x + x - flipper[7 - x], start_y + y + flipper[y], value, which_palette);
+			} else {
 				set_pixel(start_x + x, start_y + y, value, which_palette);
 			}
 		}
