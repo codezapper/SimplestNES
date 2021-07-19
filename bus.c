@@ -94,7 +94,7 @@ void cpu_write(unsigned char first, unsigned char second, unsigned char addr_mod
         A = value;
     } else {
         uint16_t address = get_address_from_params(first, second, addr_mode);
-        if ((address >= 0x2000) && (address <= 0x3FFF)) {
+        if (((address >= 0x2000) && (address <= 0x3FFF)) || (address == 0x4014)) {
             ppu_write(address, value);
         } else {
             RAM[address] = value;
@@ -122,6 +122,15 @@ void ppu_write(uint16_t address, unsigned char value) {
     // If it's a PPU register, they're mirrored up to 0x3FFF
     // Maybe 0x2000-0x3FFF ?
     open_bus = value;
+
+    if (address == OAMDMA) {
+        uint16_t cpu_address = value << 8;
+        for (int i = 0; i < 256; i++) {
+            write_dma(i, RAM[cpu_address+i]);
+        }
+        return;
+    }
+
     uint16_t offset = (address % 8) + 0x2000;
     // if ((write_enabled == 0) && (offset >= 0x2003)) {
         // return;
@@ -136,6 +145,9 @@ void ppu_write(uint16_t address, unsigned char value) {
         case OAMADDR:
             write_oamaddr(value);
             break;
+        case OAMDATA:
+            write_oamdata(value);
+            break;
         case PPUSCROLL:
             write_ppuscroll(value);
             break;
@@ -144,12 +156,6 @@ void ppu_write(uint16_t address, unsigned char value) {
             break;
         case PPUDATA:
             write_ppudata(value);
-            break;
-        case OAMDMA:
-            uint16_t cpu_address = value << 8;
-            for (int i = 0; i < 256; i++) {
-                write_dma(i, RAM[cpu_address+i]);
-            }
             break;
     }
 }
