@@ -546,8 +546,8 @@ void ppu_clock(int cpu_cycles) {
 				if (current_row != prev_row) {
 					prev_row = current_row;
 					draw_background();
+					draw_sprites();
 				}
-				draw_sprites();
 		} else if ((current_line == 241) && (ppu_cycles == 1)) {
 			set_vblank();
 			if (write_enabled == 0) {
