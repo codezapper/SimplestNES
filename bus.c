@@ -71,35 +71,16 @@ unsigned char up1 = 0;
 unsigned char select1 = 0;
 unsigned char start1 = 0;
 
-void resetController1() {
-    a1 = 0;
-    b1 = 0;
-    down1 = 0;
-    left1 = 0;
-    right1 = 0;
-    up1 = 0;
-    select1 = 0;
-    start1 = 0;
-}
-
-void setController1(uint8_t *SDL_keys) {
-	resetController1();
-	if (SDL_keys[SDL_SCANCODE_J])
-		a1 = 1;
-	if (SDL_keys[SDL_SCANCODE_K])
-		b1 = 1;
-	if (SDL_keys[SDL_SCANCODE_S])
-		down1 = 1;
-	if (SDL_keys[SDL_SCANCODE_A])
-		left1 = 1;
-	if (SDL_keys[SDL_SCANCODE_D])
-		right1 = 1;
-	if (SDL_keys[SDL_SCANCODE_W])
-		up1 = 1;
-	if (SDL_keys[SDL_SCANCODE_Q])
-		select1 = 1;
-	if (SDL_keys[SDL_SCANCODE_E])
-		start1 = 1;
+void setController1() {
+    uint8_t *SDL_keys = (uint8_t*)SDL_GetKeyboardState(0x0);
+    a1 = SDL_keys[SDL_SCANCODE_J];
+    b1 = SDL_keys[SDL_SCANCODE_K];
+    down1 = SDL_keys[SDL_SCANCODE_S];
+    left1 = SDL_keys[SDL_SCANCODE_A];
+    right1 = SDL_keys[SDL_SCANCODE_D];
+    up1 = SDL_keys[SDL_SCANCODE_W];
+    select1 = SDL_keys[SDL_SCANCODE_Q];
+    start1 = SDL_keys[SDL_SCANCODE_E];
 }
 
 uint8_t readController1(uint8_t bit) {
@@ -165,8 +146,7 @@ unsigned char cpu_read(unsigned char first, unsigned char second, unsigned char 
                     if (poll_controller1 > 7) {
                         poll_controller1 = -1;
                     }
-                    uint8_t* keys = (uint8_t*)SDL_GetKeyboardState(0x0);
-                    setController1(keys);
+                    setController1();
                     return ret | 0x40;
                 }
                 return 0x40;
