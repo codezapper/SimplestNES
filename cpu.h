@@ -11,6 +11,9 @@
 #define NF  7
 
 void init_ram();
+void init_cpu();
+int cpu_clock();
+
 uint16_t read_value_from_params(unsigned char first, unsigned char second, unsigned char addr_mode);
 void write_value_from_params(unsigned char first, unsigned char second, unsigned char value, unsigned char addr_mode);
 void ADC(unsigned char first, unsigned char second, unsigned char addr_mode);

@@ -36,7 +36,7 @@
 
 #include "utils.h"
 #include "bus.h"
-#include "cpu.h"
+#include "addressing.h"
 
 unsigned char RAM[0xFFFF];
 
@@ -51,8 +51,16 @@ int cycles_cnt = 0;
 unsigned char extra_value = 0;
 
 extern unsigned char interrupt_occurred;
+extern unsigned char interrupt_handled;
 
-//extern struct addressing_data addressing[0xFF];
+extern struct ROM rom;
+// extern struct addressing_data addressing[];
+
+extern int total_cycles;
+extern int current_line;
+
+int cycles = 0;
+int cpu_interrupt_count = 0;
 
 void stack_push(unsigned char value) {
     RAM[SP + 0x100] = value;
@@ -1024,4 +1032,132 @@ void IRQ() {
 
         PC = (RAM[0xFFFF] << 8) | RAM[0xFFFE];
     }
+}
+
+void log_to_screen(unsigned char opcode, unsigned char first, unsigned char second, char *fn_name)
+{
+    int am = addressing[opcode].addr_mode;
+
+    char log_line[1024];
+    memset(log_line, 0, sizeof(log_line));
+
+    char status_string[9];
+    memset(status_string, 0, sizeof(status_string));
+    status_string[0] = check_bit(PS, 7) ? 'N' : 'n';
+    status_string[1] = check_bit(PS, 6) ? 'V' : 'v';
+    status_string[2] = check_bit(PS, 5) ? 'U' : 'u';
+    status_string[3] = check_bit(PS, 4) ? 'B' : 'b';
+    status_string[4] = check_bit(PS, 3) ? 'D' : 'd';
+    status_string[5] = check_bit(PS, 2) ? 'I' : 'i';
+    status_string[6] = check_bit(PS, 1) ? 'Z' : 'z';
+    status_string[7] = check_bit(PS, 0) ? 'C' : 'c';
+    if (addressing[opcode].bytes == 3)
+    {
+        sprintf(log_line, "%04X %02X %02X %02X %s\tA:%02X X:%02X Y:%02X P:%02X SP:%02X LINE: %03d %s\n", PC, opcode, first, second, fn_name, A, X, Y, PS, SP, current_line, status_string);
+    }
+    else if (addressing[opcode].bytes == 2)
+    {
+        sprintf(log_line, "%04X %02X %02X    %s\tA:%02X X:%02X Y:%02X P:%02X SP:%02X LINE: %03d %s\n", PC, opcode, first, fn_name, A, X, Y, PS, SP, current_line, status_string);
+    }
+    else
+    {
+        sprintf(log_line, "%04X %02X       %s\tA:%02X X:%02X Y:%02X P:%02X SP:%02X LINE: %03d %s\n", PC, opcode, fn_name, A, X, Y, PS, SP, current_line, status_string);
+    }
+
+    printf(log_line);
+}
+
+int is_jump(unsigned char *fn_name)
+{
+    if (
+        (strncmp(fn_name, "BRK", 3) != 0) &&
+        (strncmp(fn_name, "JMP", 3) != 0) &&
+        (strncmp(fn_name, "JSR", 3) != 0) &&
+        (strncmp(fn_name, "RTI", 3) != 0))
+    {
+        return 0;
+    }
+    return 1;
+}
+
+int must_handle_interrupt()
+{
+    if (interrupt_handled == 1)
+    {
+        return 0;
+    }
+    if ((interrupt_occurred == NMI_INT) || ((interrupt_occurred == IRQ_INT) && (check_bit(PS, ID) == 0)))
+    {
+        if (cpu_interrupt_count >= 6) {
+            cpu_interrupt_count = 0;
+            return 1;
+        } else {
+            cpu_interrupt_count++;
+        }
+    }
+    return 0;
+}
+
+void dump_ram()
+{
+    FILE *dump_file = fopen("dump.txt", "w");
+    for (int i = 0; i < sizeof(RAM); i++)
+    {
+        if ((i % 8) == 0)
+        {
+            fprintf(dump_file, "\n%04X ", i);
+        }
+        fprintf(dump_file, "%02X ", RAM[i]);
+    }
+}
+
+void init_cpu() {
+    SP = 0xFD;
+    A = 0;
+    X = 0;
+    Y = 0;
+    PC = (RAM[0xFFFD] << 8) | RAM[0xFFFC];
+}
+
+int cpu_clock() {
+    unsigned char opcode = 0;
+    unsigned char value = 0;
+    unsigned char first;
+    unsigned char second;
+    if (must_handle_interrupt(interrupt_occurred))
+    {
+        if (interrupt_occurred == NMI_INT)
+        {
+            NMI();
+        }
+        else
+        {
+            IRQ();
+        }
+        interrupt_handled = 1;
+    }
+    opcode = RAM[PC];
+    if (addressing[opcode].cycles == 0)
+    {
+        PC++;
+        return 0;
+    }
+    first = (RAM[PC + 1]);
+    second = (RAM[PC + 2]);
+
+    unsigned char fn_name[4];
+    memset(fn_name, 0, 4);
+    strncpy(fn_name, addressing[opcode].name, 3);
+
+    // log_to_screen(opcode, first, second, fn_name);
+
+    void (*fun_ptr)(unsigned char, unsigned char, unsigned char) = addressing[opcode].opcode_fun;
+    (*fun_ptr)(first, second, addressing[opcode].addr_mode);
+
+    if ((is_jump(fn_name) == 0) && (PC > 0))
+    {
+        PC += addressing[opcode].bytes;
+    }
+
+    return addressing[opcode].cycles;
 }

@@ -1,6 +1,3 @@
-#ifndef ADDRESSING_H
-#define ADDRESSING_H
-
 #include "cpu.h"
 #include "addressing_modes.h"
 
@@ -40,5 +37,3 @@ struct addressing_data addressing[(0xFF) + 1] = {
     // 250
     {&NOP, "NOP", IMPLICIT, 1, 1}, {&ISC, "ISC", ABSOLUTEY, 3, 7}, {&NOP, "NOP", INDIRECT, 3, 1}, {&SBC, "SBC", ABSOLUTEX, 3, -4}, {&INC, "INC", ABSOLUTEX, 3, 7}, {&ISC, "ISC", ABSOLUTEX, 3, 7}
 };
-
-#endif

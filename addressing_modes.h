@@ -1,3 +1,6 @@
+#ifndef ADDRESSING_MODES_H
+#define ADDRESSING_MODES_H
+
 #define IMPLICIT        0
 #define ACCUMULATOR     1
 #define IMMEDIATE       2
@@ -22,3 +25,4 @@ struct addressing_data {
     int bytes;
     int cycles;
 };
+#endif
