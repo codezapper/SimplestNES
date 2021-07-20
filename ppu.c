@@ -308,7 +308,7 @@ unsigned char init_sdl()
 	window = SDL_CreateWindow("SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
+	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR32, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
 	// SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
 }
 
@@ -373,7 +373,7 @@ void update_palette() {
 }
 
 void set_pixel(int x, int y, int color_index, int palette_index, int is_sprite) {
-	if ((palette_index == 0) && is_sprite) {
+	if ((color_index == 0) && is_sprite) {
 		return;
 	}
 
@@ -382,14 +382,10 @@ void set_pixel(int x, int y, int color_index, int palette_index, int is_sprite) 
 	unsigned char B = PALETTE[palette[palette_index][color_index]][2];
 
 	unsigned int offset = (WIDTH * y * sizeof(uint32_t)) + (x * sizeof(uint32_t));
-	framebuffer[offset] = B;
-	framebuffer[offset + 1] = G;
-	framebuffer[offset + 2] = R;
-	if (palette_index == 0) {
-		framebuffer[offset + 3] = SDL_ALPHA_TRANSPARENT;
-	} else {
-		framebuffer[offset + 3] = SDL_ALPHA_OPAQUE;
-	}
+	framebuffer[offset] = SDL_ALPHA_OPAQUE;
+	framebuffer[offset + 1] = B;
+	framebuffer[offset + 2] = G;
+	framebuffer[offset + 3] = R;
 }
 
 void dump_vram()
