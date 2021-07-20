@@ -55,6 +55,9 @@
 #define FLIP_HORIZONTAL		6
 #define FLIP_VERTICAL		7
 
+#define IS_SPRITE			1
+#define IS_BACKGROUND		0
+
 extern struct ROM rom;
 extern int cycles;
 
@@ -304,7 +307,9 @@ unsigned char init_sdl()
 	SDL_Init(SDL_INIT_EVERYTHING);
 	window = SDL_CreateWindow("SDL2", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, SDL_WINDOW_SHOWN);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 	texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
+	// SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
 }
 
 void free_ppu()
@@ -367,7 +372,11 @@ void update_palette() {
 	palette[7][3] = VRAM[0x3F1F];
 }
 
-void set_pixel(int x, int y, int color_index, int palette_index) {
+void set_pixel(int x, int y, int color_index, int palette_index, int is_sprite) {
+	if ((palette_index == 0) && is_sprite) {
+		return;
+	}
+
 	unsigned char R = PALETTE[palette[palette_index][color_index]][0];
 	unsigned char G = PALETTE[palette[palette_index][color_index]][1];
 	unsigned char B = PALETTE[palette[palette_index][color_index]][2];
@@ -423,7 +432,7 @@ void show_tile(int bank, int tile_n, int row, int col) {
 				int d = 0;
 			}
 
-			set_pixel(x + start_x, y + start_y, value, which_palette);
+			set_pixel(x + start_x, y + start_y, value, which_palette, IS_BACKGROUND);
 		}
 	}
 }
@@ -449,9 +458,10 @@ void draw_background() {
 		}
 	// }
 
-
 	SDL_UpdateTexture(texture, NULL, framebuffer, WIDTH * 4);
-	SDL_RenderCopy(renderer, texture, NULL, NULL);
+	// SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xff);
+	// SDL_RenderClear(renderer);
+	// SDL_RenderCopy(renderer, texture, NULL, NULL);
 }
 
 struct OAM {
@@ -468,11 +478,8 @@ void show_sprite(int bank, int tile_n, int start_x, int start_y, int attr_byte) 
 	unsigned char flip_h = check_bit(attr_byte, FLIP_HORIZONTAL);
 	unsigned char flip_v = check_bit(attr_byte, FLIP_VERTICAL);
 
-	if (tile_n != 0) {
-		int d = 0;
-	}
-
-	int flipper[8] = {7, 5, 3, 1, -1, -3, -5, -7};
+	int x_flipper[8] = {7, 5, 3, 1, -1, -3, -5, -7};
+	int y_flipper[8] = {7, 5, 3, 1, -1, -3, -5, -7};
 
 	for (int y = 0; y <= 7; y++) {
 		unsigned char upper = VRAM[bank + tile_n * 0x10 + y + 8];
@@ -483,15 +490,7 @@ void show_sprite(int bank, int tile_n, int start_x, int start_y, int attr_byte) 
 			upper >>= 1;
 			lower >>= 1;
 
-			if (flip_h && !flip_v) {
-				set_pixel(start_x + x - flipper[7 - x], start_y + y, value, which_palette);
-			} else if (flip_v && !flip_h) {
-				set_pixel(start_x + x, start_y + y + flipper[y], value, which_palette);
-			} else if (flip_v && flip_h) {
-				set_pixel(start_x + x - flipper[7 - x], start_y + y + flipper[y], value, which_palette);
-			} else {
-				set_pixel(start_x + x, start_y + y, value, which_palette);
-			}
+			set_pixel(start_x + x - (x_flipper[7 - x] * flip_h), start_y + y + (y_flipper[y] * flip_v), value, which_palette, IS_SPRITE);
 		}
 	}
 }
@@ -558,6 +557,7 @@ void ppu_clock(int cpu_cycles) {
 					draw_background();
 				}
 				draw_sprites();
+				SDL_RenderCopy(renderer, texture, NULL, NULL);
 		} else if ((current_line == 241) && (ppu_cycles == 1)) {
 			set_vblank();
 			if (write_enabled == 0) {
