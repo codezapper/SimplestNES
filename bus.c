@@ -1,5 +1,7 @@
 #include "bus.h"
 #include "ppu.h"
+#include <SDL_scancode.h>
+#include <SDL_keyboard.h>
 
 extern unsigned char VRAM[0xFFFF];
 extern int cycles;
@@ -60,6 +62,80 @@ uint16_t get_address_from_params(unsigned char first, unsigned char second, unsi
     }
 }
 
+unsigned char a1 = 0;
+unsigned char b1 = 0;
+unsigned char down1 = 0;
+unsigned char left1 = 0;
+unsigned char right1 = 0;
+unsigned char up1 = 0;
+unsigned char select1 = 0;
+unsigned char start1 = 0;
+
+void resetController1() {
+    a1 = 0;
+    b1 = 0;
+    down1 = 0;
+    left1 = 0;
+    right1 = 0;
+    up1 = 0;
+    select1 = 0;
+    start1 = 0;
+}
+
+void setController1(uint8_t *SDL_keys) {
+	resetController1();
+	if (SDL_keys[SDL_SCANCODE_J])
+		a1 = 1;
+	if (SDL_keys[SDL_SCANCODE_K])
+		b1 = 1;
+	if (SDL_keys[SDL_SCANCODE_S])
+		down1 = 1;
+	if (SDL_keys[SDL_SCANCODE_A])
+		left1 = 1;
+	if (SDL_keys[SDL_SCANCODE_D])
+		right1 = 1;
+	if (SDL_keys[SDL_SCANCODE_W])
+		up1 = 1;
+	if (SDL_keys[SDL_SCANCODE_Q])
+		select1 = 1;
+	if (SDL_keys[SDL_SCANCODE_E])
+		start1 = 1;
+}
+
+uint8_t readController1(uint8_t bit) {
+	switch (bit) {
+	case 0:
+		return a1;
+		break;
+	case 1:
+		return b1;
+		break;
+	case 2:
+		return select1;
+		break;
+	case 3:
+		return start1;
+		break;
+	case 4:
+		return up1;
+		break;
+	case 5:
+		return down1;
+		break;
+	case 6:
+		return left1;
+		break;
+	case 7:
+		return right1;
+		break;
+	default:
+		return 0;
+		break;
+	}
+}
+
+unsigned char poll_controller1 = -1;
+
 unsigned char cpu_read(unsigned char first, unsigned char second, unsigned char addr_mode) {
     uint16_t value = get_address_from_params(first, second, addr_mode);
 
@@ -83,11 +159,23 @@ unsigned char cpu_read(unsigned char first, unsigned char second, unsigned char 
 
             if ((value >= 0x2000) && (value <= 0x3FFF)) {
                 return ppu_read(value);
+            } else if (value == 0x4016) {
+                if (poll_controller1 >= 0) {
+                    unsigned char ret = readController1(poll_controller1++);
+                    if (poll_controller1 > 7) {
+                        poll_controller1 = -1;
+                    }
+                    uint8_t* keys = (uint8_t*)SDL_GetKeyboardState(0x0);
+                    setController1(keys);
+                    return ret | 0x40;
+                }
+                return 0x40;
             } else {
                 return RAM[value];
             }
     }
 }
+
 
 void cpu_write(unsigned char first, unsigned char second, unsigned char addr_mode, unsigned char value) {
     if (ACCUMULATOR == addr_mode) {
@@ -96,6 +184,8 @@ void cpu_write(unsigned char first, unsigned char second, unsigned char addr_mod
         uint16_t address = get_address_from_params(first, second, addr_mode);
         if (((address >= 0x2000) && (address <= 0x3FFF)) || (address == 0x4014)) {
             ppu_write(address, value);
+        } else if (address == 0x4016) {
+            poll_controller1 = value;
         } else {
             RAM[address] = value;
         }
