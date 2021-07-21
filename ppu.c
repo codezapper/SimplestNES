@@ -476,7 +476,7 @@ void check_sprite_zero_hit(unsigned char x, unsigned char y) {
 	   (framebuffer[offset + 1] == PALETTE[VRAM[0x3F00]][1]) &&
 	   (framebuffer[offset + 2] == PALETTE[VRAM[0x3F00]][2])
 	   ) {
-		ppustatus = clear_bit(ppustatus, SPRITE_ZERO_BIT);
+		return;
 	}
 
 	ppustatus = set_bit(ppustatus, SPRITE_ZERO_BIT);
@@ -501,8 +501,10 @@ void show_sprite(int bank, int tile_n, int start_x, int start_y, int attr_byte, 
 			unsigned char final_x = start_x + x - (x_flipper[7 - x] * flip_h);
 			unsigned char final_y = start_y + y + (y_flipper[y] * flip_v);
 
-			if ((!check_bit(ppustatus, SPRITE_ZERO_BIT)) && (value)) {
-				check_sprite_zero_hit(final_x, final_y);
+			if (is_sprite_zero) {
+				if (!check_bit(ppustatus, SPRITE_ZERO_BIT)) {
+					check_sprite_zero_hit(final_x, final_y);
+				}
 			}
 
 			set_pixel(final_x, final_y, value, which_palette, IS_SPRITE);
@@ -579,7 +581,6 @@ void ppu_clock(int cpu_cycles) {
 			if (interrupt_occurred == 0) {
 				SDL_RenderCopy(renderer, texture, NULL, NULL);
 				SDL_RenderPresent(renderer);
-				clear_bit(ppustatus, SPRITE_ZERO_BIT);
 				if (can_generate_nmi()) {
 					interrupt_handled = 0;
 					interrupt_occurred = NMI_INT;
@@ -588,6 +589,7 @@ void ppu_clock(int cpu_cycles) {
 			}
 		} else if ((current_line == 261) && (ppu_cycles == 1)) {
 			clear_vblank();
+			ppustatus = clear_bit(ppustatus, SPRITE_ZERO_BIT);
 			interrupt_occurred = 0;
 			current_line = 0;
 		}
