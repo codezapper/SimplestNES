@@ -50,6 +50,7 @@
 #define BG_TILE_SELECT		4
 #define FG_TILE_SELECT		3
 
+#define SPRITE_ZERO_BIT		6
 #define VBLANK_BIT			7
 
 #define FLIP_HORIZONTAL		6
@@ -382,10 +383,6 @@ void set_pixel(int x, int y, int color_index, int palette_index, int is_sprite) 
 
 	unsigned int offset = (base_offset * y) + (x << 2);
 	memcpy(&framebuffer[offset], color, 3);
-	// framebuffer[offset] = color[0];
-	// framebuffer[offset + 1] = color[1];
-	// framebuffer[offset + 2] = color[2];
-	// framebuffer[offset + 3] = SDL_ALPHA_OPAQUE;
 }
 
 void dump_vram()
@@ -471,7 +468,21 @@ struct OAM parsed_oam[64];
 int x_flipper[8] = {7, 5, 3, 1, -1, -3, -5, -7};
 int y_flipper[8] = {7, 5, 3, 1, -1, -3, -5, -7};
 
-void show_sprite(int bank, int tile_n, int start_x, int start_y, int attr_byte) {
+void check_sprite_zero_hit(unsigned char x, unsigned char y) {
+	int offset = (base_offset * y) + (x << 2);
+
+	if (
+	   (framebuffer[offset] == PALETTE[VRAM[0x3F00]][0]) &&
+	   (framebuffer[offset + 1] == PALETTE[VRAM[0x3F00]][1]) &&
+	   (framebuffer[offset + 2] == PALETTE[VRAM[0x3F00]][2])
+	   ) {
+		ppustatus = clear_bit(ppustatus, SPRITE_ZERO_BIT);
+	}
+
+	ppustatus = set_bit(ppustatus, SPRITE_ZERO_BIT);
+}
+
+void show_sprite(int bank, int tile_n, int start_x, int start_y, int attr_byte, int is_sprite_zero) {
 	unsigned char which_palette = (attr_byte & 0x03) + 4;
 	unsigned char flip_h = check_bit(attr_byte, FLIP_HORIZONTAL);
 	unsigned char flip_v = check_bit(attr_byte, FLIP_VERTICAL);
@@ -487,7 +498,14 @@ void show_sprite(int bank, int tile_n, int start_x, int start_y, int attr_byte) 
 			upper >>= 1;
 			lower >>= 1;
 
-			set_pixel(start_x + x - (x_flipper[7 - x] * flip_h), start_y + y + (y_flipper[y] * flip_v), value, which_palette, IS_SPRITE);
+			unsigned char final_x = start_x + x - (x_flipper[7 - x] * flip_h);
+			unsigned char final_y = start_y + y + (y_flipper[y] * flip_v);
+
+			if ((!check_bit(ppustatus, SPRITE_ZERO_BIT)) && (value)) {
+				check_sprite_zero_hit(final_x, final_y);
+			}
+
+			set_pixel(final_x, final_y, value, which_palette, IS_SPRITE);
 		}
 	}
 }
@@ -503,7 +521,7 @@ void draw_sprites() {
 
 	for (int i = 0; i < 64; i++) {
 		if (parsed_oam[i].y != 255) {
-			show_sprite(bank_address[fg_bank], parsed_oam[i].tile_n, parsed_oam[i].x, parsed_oam[i].y, parsed_oam[i].attr_byte);
+			show_sprite(bank_address[fg_bank], parsed_oam[i].tile_n, parsed_oam[i].x, parsed_oam[i].y, parsed_oam[i].attr_byte, (i == 0));
 		}
 	}
 }
@@ -561,6 +579,7 @@ void ppu_clock(int cpu_cycles) {
 			if (interrupt_occurred == 0) {
 				SDL_RenderCopy(renderer, texture, NULL, NULL);
 				SDL_RenderPresent(renderer);
+				clear_bit(ppustatus, SPRITE_ZERO_BIT);
 				if (can_generate_nmi()) {
 					interrupt_handled = 0;
 					interrupt_occurred = NMI_INT;
