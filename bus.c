@@ -62,57 +62,16 @@ uint16_t get_address_from_params(unsigned char first, unsigned char second, unsi
     }
 }
 
-unsigned char a1 = 0;
-unsigned char b1 = 0;
-unsigned char down1 = 0;
-unsigned char left1 = 0;
-unsigned char right1 = 0;
-unsigned char up1 = 0;
-unsigned char select1 = 0;
-unsigned char start1 = 0;
-
-void setController1() {
-    uint8_t *SDL_keys = (uint8_t*)SDL_GetKeyboardState(0x0);
-    a1 = SDL_keys[SDL_SCANCODE_J];
-    b1 = SDL_keys[SDL_SCANCODE_K];
-    down1 = SDL_keys[SDL_SCANCODE_S];
-    left1 = SDL_keys[SDL_SCANCODE_A];
-    right1 = SDL_keys[SDL_SCANCODE_D];
-    up1 = SDL_keys[SDL_SCANCODE_W];
-    select1 = SDL_keys[SDL_SCANCODE_Q];
-    start1 = SDL_keys[SDL_SCANCODE_E];
-}
+unsigned char buttons[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+// Order is A, B, SELECT, START, UP, DOWN, LEFT, RIGHT
+int scancodes[8] = {SDL_SCANCODE_J, SDL_SCANCODE_K, SDL_SCANCODE_Q, SDL_SCANCODE_E, SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D};
 
 uint8_t readController1(uint8_t bit) {
-	switch (bit) {
-	case 0:
-		return a1;
-		break;
-	case 1:
-		return b1;
-		break;
-	case 2:
-		return select1;
-		break;
-	case 3:
-		return start1;
-		break;
-	case 4:
-		return up1;
-		break;
-	case 5:
-		return down1;
-		break;
-	case 6:
-		return left1;
-		break;
-	case 7:
-		return right1;
-		break;
-	default:
-		return 0;
-		break;
-	}
+    uint8_t *SDL_keys = (uint8_t*)SDL_GetKeyboardState(0x0);
+    for (int i = 0; i < 8; i++) {
+        buttons[i] = SDL_keys[scancodes[i]];
+    }
+    return buttons[bit];
 }
 
 unsigned char poll_controller1 = -1;
@@ -146,7 +105,6 @@ unsigned char cpu_read(unsigned char first, unsigned char second, unsigned char 
                     if (poll_controller1 > 7) {
                         poll_controller1 = -1;
                     }
-                    setController1();
                     return ret | 0x40;
                 }
                 return 0x40;
