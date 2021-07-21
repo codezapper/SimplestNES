@@ -502,7 +502,7 @@ void show_sprite(int bank, int tile_n, int start_x, int start_y, int attr_byte, 
 			unsigned char final_y = start_y + y + (y_flipper[y] * flip_v);
 
 			if (is_sprite_zero) {
-				if (!check_bit(ppustatus, SPRITE_ZERO_BIT)) {
+				if (!check_bit(ppustatus, SPRITE_ZERO_BIT) && value) {
 					check_sprite_zero_hit(final_x, final_y);
 				}
 			}
