@@ -17,6 +17,7 @@ profiler:
 	gcc -pg -O0 -c rom.c -o rom.o
 	gcc -pg -O0 -I/usr/include/SDL2 -c main.c -o main.o
 	gcc -pg -O0 main.o cpu.o ppu.o rom.o utils.o bus.o -lSDL2 -o yanes
+	gcc -pg -O0 main.o cpu.o ppu.o rom.o utils.o bus.o -lSDL2 -lSDL2_ttf -o yanes
 
 optimized:
 	rm -f main.o cpu.o ppu.o rom.o utils.o bus.o yanes
@@ -26,5 +27,4 @@ optimized:
 	gcc -O3 -I/usr/include/SDL2 -c bus.c -o bus.o
 	gcc -O3 -c rom.c -o rom.o
 	gcc -O3 -I/usr/include/SDL2 -c main.c -o main.o
-	gcc -O3 main.o cpu.o ppu.o rom.o utils.o bus.o -lSDL2 -o yanes
-
+	gcc -O3 main.o cpu.o ppu.o rom.o utils.o bus.o -lSDL2 -lSDL2_ttf -o yanes
