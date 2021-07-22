@@ -27,6 +27,7 @@
 // $03, $07, $0B, $0F 	Sprite X coordinate 
 
 #include <SDL.h>
+#include <SDL_ttf.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -380,6 +381,10 @@ void set_pixel(int x, int y, int color_index, int palette_index, int is_sprite, 
 		return;
 	}
 
+	if ((((x + shift_x) < 0) || ((x + shift_x) > 255)) && (!is_sprite)) {
+		return;
+	}
+
 	unsigned char *color = PALETTE[palette[palette_index][color_index]];
 
 	unsigned int offset = (base_offset * (y + shift_y)) + ((x + shift_x) << 2);
@@ -403,9 +408,6 @@ void show_tile(int bank, int tile_n, int row, int col, int shift_x, int shift_y)
 	int start_x = col * 8;
 	int start_y = row * 8;
 
-	// int start_x = (col * 8) + x_scroll;
-	// int start_y = (row * 8) + y_scroll;
-
 	int block_x = col / 4;
 	int block_y = row / 4;
 
@@ -417,15 +419,7 @@ void show_tile(int bank, int tile_n, int row, int col, int shift_x, int shift_y)
 
 	uint16_t tile_address;
 
-	// if ((x_scroll != 0) || (y_scroll != 0)) {
-	// 	unsigned char high_x = x_scroll & 0xF8;
-	// 	unsigned char high_y = y_scroll & 0xF8;
-	// 	unsigned char nt_select_bits = (check_bit(ppuctrl, 1) << 1) | check_bit(ppuctrl, 0);
-
-	// 	tile_address = (high_y << 7) | (high_x << 2) | nt_select_bits;
-	// } else {
-		tile_address = bank + tile_n * 0x10;
-	// }
+	tile_address = bank + tile_n * 0x10;
 
 	for (int y = 0; y <= 7; y++) {
 		unsigned char upper = VRAM[tile_address + y + 8];
@@ -453,7 +447,7 @@ void draw_background(unsigned char nametable_id, int shift_x, int shift_y) {
 	uint16_t nametable_address = 0x2000 + (nametable_id * 0x400);
 
 	int bg_bank = check_bit(ppuctrl, BG_TILE_SELECT);
-	if (bg_bank == 1) {
+	if (nametable_id == 0) {
 		bg_attr_address = 0x23C0;
 	} else {
 		bg_attr_address = 0x27C0;
@@ -552,6 +546,24 @@ void init_ppu() {
 int reset_vbl_cycles = 0;
 int counter = 0;
 
+void render_debug() {
+	char debug[256];
+	memset(debug, 0, sizeof(debug));
+	sprintf(debug, "SCROLL X: %03d", x_scroll);
+	SDL_Color textColor = { 255, 255, 255, 0 };
+	TTF_Init();
+    TTF_Font *font = TTF_OpenFont("/usr/share/fonts/google-roboto/Roboto-Regular.ttf", 24);
+
+	SDL_Surface* textSurface = TTF_RenderText_Solid(font, debug, textColor);
+	SDL_Texture* text = SDL_CreateTextureFromSurface(renderer, textSurface);
+	int text_width = textSurface->w;
+	int text_height = textSurface->h;
+	SDL_FreeSurface(textSurface);
+	SDL_Rect renderQuad = { 0, 0, text_width, text_height };
+	SDL_RenderCopy(renderer, text, NULL, &renderQuad);
+	SDL_DestroyTexture(text);
+}
+
 void ppu_clock(int cpu_cycles) {
 	reset_vbl_cycles += cpu_cycles;
 	int end_cycles = cpu_cycles * 3;
@@ -577,7 +589,11 @@ void ppu_clock(int cpu_cycles) {
 					unsigned char nametable_id = (check_bit(ppuctrl, 1) << 1) | check_bit(ppuctrl, 0);
 
 					draw_background(nametable_id, -x_scroll, y_scroll);
-					// draw_background(1, 256-x_scroll, y_scroll);
+					if (nametable_id == 0) {
+						draw_background(1, 256-x_scroll, y_scroll);
+					} else {
+						draw_background(0, 256-x_scroll, y_scroll);
+					}
 					draw_sprites();
 				}
 		} else if ((current_line == 241) && (ppu_cycles == 1)) {
@@ -593,6 +609,7 @@ void ppu_clock(int cpu_cycles) {
 			if (interrupt_occurred == 0) {
 				SDL_UpdateTexture(texture, NULL, framebuffer, WIDTH * 4);
 				SDL_RenderCopy(renderer, texture, NULL, NULL);
+				// render_debug();
 				SDL_RenderPresent(renderer);
 				if (can_generate_nmi()) {
 					interrupt_handled = 0;
