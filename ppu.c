@@ -324,7 +324,7 @@ void free_ppu()
 	SDL_Quit();
 }
 
-unsigned char framebuffer[WIDTH * HEIGHT * sizeof(uint32_t)];
+unsigned char framebuffer[WIDTH * HEIGHT * sizeof(uint32_t) * 4];
 
 int bank_address[] = {
 	0x0,
@@ -375,14 +375,14 @@ void update_palette() {
 	palette[7][3] = VRAM[0x3F1F];
 }
 
-void set_pixel(int x, int y, int color_index, int palette_index, int is_sprite) {
+void set_pixel(int x, int y, int color_index, int palette_index, int is_sprite, int shift_x, int shift_y) {
 	if ((color_index == 0) && is_sprite) {
 		return;
 	}
 
 	unsigned char *color = PALETTE[palette[palette_index][color_index]];
 
-	unsigned int offset = (base_offset * y) + (x << 2);
+	unsigned int offset = (base_offset * (y + shift_y)) + ((x + shift_x) << 2);
 	memcpy(&framebuffer[offset], color, 3);
 }
 
@@ -399,9 +399,12 @@ void dump_vram()
     }
 }
 
-void show_tile(int bank, int tile_n, int row, int col) {
-	int start_x = (col * 8) + x_scroll;
-	int start_y = (row * 8) + y_scroll;
+void show_tile(int bank, int tile_n, int row, int col, int shift_x, int shift_y) {
+	int start_x = col * 8;
+	int start_y = row * 8;
+
+	// int start_x = (col * 8) + x_scroll;
+	// int start_y = (row * 8) + y_scroll;
 
 	int block_x = col / 4;
 	int block_y = row / 4;
@@ -414,15 +417,15 @@ void show_tile(int bank, int tile_n, int row, int col) {
 
 	uint16_t tile_address;
 
-	if ((x_scroll != 0) || (y_scroll != 0)) {
-		unsigned char high_x = x_scroll & 0xF8;
-		unsigned char high_y = y_scroll & 0xF8;
-		unsigned char nt_select_bits = (check_bit(ppuctrl, 1) << 1) | check_bit(ppuctrl, 0);
+	// if ((x_scroll != 0) || (y_scroll != 0)) {
+	// 	unsigned char high_x = x_scroll & 0xF8;
+	// 	unsigned char high_y = y_scroll & 0xF8;
+	// 	unsigned char nt_select_bits = (check_bit(ppuctrl, 1) << 1) | check_bit(ppuctrl, 0);
 
-		tile_address = (high_y << 7) | (high_x << 2) | nt_select_bits;
-	} else {
+	// 	tile_address = (high_y << 7) | (high_x << 2) | nt_select_bits;
+	// } else {
 		tile_address = bank + tile_n * 0x10;
-	}
+	// }
 
 	for (int y = 0; y <= 7; y++) {
 		unsigned char upper = VRAM[tile_address + y + 8];
@@ -437,17 +440,16 @@ void show_tile(int bank, int tile_n, int row, int col) {
 				int d = 0;
 			}
 
-			set_pixel(x + start_x, y + start_y, value, which_palette, IS_BACKGROUND);
+			set_pixel(x + start_x, y + start_y, value, which_palette, IS_BACKGROUND, shift_x, shift_y);
 		}
 	}
 }
 
-void draw_background() {
+void draw_background(unsigned char nametable_id, int shift_x, int shift_y) {
 	if (check_bit(ppumask, BG_ENABLE) == 0) {
 		return;
 	}
 
-	unsigned char nametable_id = (check_bit(ppuctrl, 1) << 1) | check_bit(ppuctrl, 0);
 	uint16_t nametable_address = 0x2000 + (nametable_id * 0x400);
 
 	int bg_bank = check_bit(ppuctrl, BG_TILE_SELECT);
@@ -459,7 +461,7 @@ void draw_background() {
  	// for (int row = 0; row < 30; row++) {
 		for (int col = 0; col < 32; col++) {
 			uint16_t tile_n = VRAM[nametable_address + ( current_row * 32) + col];
-			show_tile(bank_address[bg_bank], tile_n, current_row, col);
+			show_tile(bank_address[bg_bank], tile_n, current_row, col, shift_x, shift_y);
 		}
 	// }
 }
@@ -513,7 +515,7 @@ void show_sprite(int bank, int tile_n, int start_x, int start_y, int attr_byte, 
 				}
 			}
 
-			set_pixel(final_x, final_y, value, which_palette, IS_SPRITE);
+			set_pixel(final_x, final_y, value, which_palette, IS_SPRITE, 0, 0);
 		}
 	}
 }
@@ -572,7 +574,10 @@ void ppu_clock(int cpu_cycles) {
 				current_row = (int)(current_line / 8);
 				if (current_row != prev_row) {
 					prev_row = current_row;
-					draw_background();
+					unsigned char nametable_id = (check_bit(ppuctrl, 1) << 1) | check_bit(ppuctrl, 0);
+
+					draw_background(nametable_id, -x_scroll, y_scroll);
+					// draw_background(1, 256-x_scroll, y_scroll);
 					draw_sprites();
 				}
 		} else if ((current_line == 241) && (ppu_cycles == 1)) {

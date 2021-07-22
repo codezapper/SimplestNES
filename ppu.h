@@ -30,5 +30,5 @@ void write_v(unsigned char value);
 unsigned char read_ppudata();
 void clear_vblank();
 void write_dma(unsigned char address, unsigned char value);
-void draw_background();
+void draw_background(unsigned char nametable_id, int shift_x, int shift_y);
 void update_palette();
