@@ -73,11 +73,15 @@ unsigned char ppumask = 0;
 unsigned char ppustatus = 0x0;
 unsigned char oamaddr = 0;
 unsigned char oamdata[OAMSIZE];
-unsigned char ppuscroll;
 unsigned char ppudata;
 unsigned char oamdma;
 
 unsigned char ppudata_buffer = 0;
+
+uint16_t base_offset = WIDTH * sizeof(uint32_t);
+unsigned char x_scroll = 0;
+unsigned char y_scroll = 0;
+
 
 // TODO:
 // Use "v" as the VRAM address when reading/writing
@@ -103,7 +107,7 @@ When the frame starts, the PPU will automatically copy the value from t to v and
 
 uint16_t t = 0;
 uint16_t v = 0;
-unsigned char t_toggle = HIGH;
+unsigned char w = HIGH;
 
 uint16_t bg_attr_address;
 
@@ -154,7 +158,7 @@ unsigned char read_ppustatus() {
 	unsigned char current = ppustatus;
 	clear_vblank();
 	t = 0;
-	t_toggle = HIGH;
+	w = HIGH;
     return current;
 }
 
@@ -243,22 +247,22 @@ void write_ppudata(unsigned char value) {
 }
 
 void write_ppuscroll(unsigned char value) {
-	if (t_toggle == HIGH) {
-		t_toggle = LOW;
-		ppuscroll = value << 8;
+	if (w == HIGH) {
+		w = LOW;
+		x_scroll = value;
 	} else {
-		t_toggle = HIGH;
-		ppuscroll |= value;
+		w = HIGH;
+		y_scroll = value;
 	}
 }
 
 void write_v(unsigned char value) {
-	if (t_toggle == HIGH) {
-		t_toggle = LOW;
+	if (w == HIGH) {
+		w = LOW;
 		t = value << 8;
 		// v = t;
 	} else {
-		t_toggle = HIGH;
+		w = HIGH;
 		t |= value;
 		t &= 0x3FFF;
 		// if (check_bit(ppustatus, VBLANK_BIT) == 0) {
@@ -291,8 +295,7 @@ void set_vblank() {
 
 void clear_vblank() {
 	ppustatus = clear_bit(ppustatus, VBLANK_BIT);
-	t_toggle = HIGH;
-	t_toggle = HIGH;
+	w = HIGH;
 }
 
 int can_generate_nmi() {
@@ -328,7 +331,7 @@ int bank_address[] = {
 	0x1000
 };
 
-unsigned char palette[4][4];
+unsigned char palette[8][4];
 
 void update_palette() {
 	palette[0][0] = VRAM[0x3F00];
@@ -372,8 +375,6 @@ void update_palette() {
 	palette[7][3] = VRAM[0x3F1F];
 }
 
-uint16_t base_offset = WIDTH * sizeof(uint32_t);
-
 void set_pixel(int x, int y, int color_index, int palette_index, int is_sprite) {
 	if ((color_index == 0) && is_sprite) {
 		return;
@@ -399,9 +400,8 @@ void dump_vram()
 }
 
 void show_tile(int bank, int tile_n, int row, int col) {
-	int tile[16];
-	int start_x = col * 8;
-	int start_y = row * 8;
+	int start_x = (col * 8) + x_scroll;
+	int start_y = (row * 8) + y_scroll;
 
 	int block_x = col / 4;
 	int block_y = row / 4;
@@ -412,9 +412,21 @@ void show_tile(int bank, int tile_n, int row, int col) {
 	unsigned char block_id = ((col % 4) / 2) + (((row % 4) / 2) * 2);
 	unsigned char which_palette = (attr_byte >> (block_id * 2)) & 0x03;
 
+	uint16_t tile_address;
+
+	if ((x_scroll != 0) || (y_scroll != 0)) {
+		unsigned char high_x = x_scroll & 0xF8;
+		unsigned char high_y = y_scroll & 0xF8;
+		unsigned char nt_select_bits = (check_bit(ppuctrl, 1) << 1) | check_bit(ppuctrl, 0);
+
+		tile_address = (high_y << 7) | (high_x << 2) | nt_select_bits;
+	} else {
+		tile_address = bank + tile_n * 0x10;
+	}
+
 	for (int y = 0; y <= 7; y++) {
-		unsigned char upper = VRAM[bank + tile_n * 0x10 + y + 8];
-		unsigned char lower = VRAM[bank + tile_n * 0x10 + y];
+		unsigned char upper = VRAM[tile_address + y + 8];
+		unsigned char lower = VRAM[tile_address + y];
 
 		for (int x = 7; x >= 0; x--) {
 			int value = ((1 & upper) << 1) | (1 & lower);
@@ -450,11 +462,6 @@ void draw_background() {
 			show_tile(bank_address[bg_bank], tile_n, current_row, col);
 		}
 	// }
-
-	SDL_UpdateTexture(texture, NULL, framebuffer, WIDTH * 4);
-	// SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xff);
-	// SDL_RenderClear(renderer);
-	// SDL_RenderCopy(renderer, texture, NULL, NULL);
 }
 
 struct OAM {
@@ -465,8 +472,7 @@ struct OAM {
 };
 
 struct OAM parsed_oam[64];
-int x_flipper[8] = {7, 5, 3, 1, -1, -3, -5, -7};
-int y_flipper[8] = {7, 5, 3, 1, -1, -3, -5, -7};
+int flipper[8] = {7, 5, 3, 1, -1, -3, -5, -7};
 
 void check_sprite_zero_hit(unsigned char x, unsigned char y) {
 	int offset = (base_offset * y) + (x << 2);
@@ -498,8 +504,8 @@ void show_sprite(int bank, int tile_n, int start_x, int start_y, int attr_byte, 
 			upper >>= 1;
 			lower >>= 1;
 
-			unsigned char final_x = start_x + x - (x_flipper[7 - x] * flip_h);
-			unsigned char final_y = start_y + y + (y_flipper[y] * flip_v);
+			unsigned char final_x = start_x + x - (flipper[7 - x] * flip_h);
+			unsigned char final_y = start_y + y + (flipper[y] * flip_v);
 
 			if (is_sprite_zero) {
 				if (!check_bit(ppustatus, SPRITE_ZERO_BIT) && value) {
@@ -537,12 +543,12 @@ void init_ppu() {
 	ppumask = 0;
 	ppustatus = 0x0;
 	oamaddr = 0;
-	ppuscroll = 0;
 	v = 0;
 	ppudata = 0;
 }
 
 int reset_vbl_cycles = 0;
+int counter = 0;
 
 void ppu_clock(int cpu_cycles) {
 	reset_vbl_cycles += cpu_cycles;
@@ -558,6 +564,7 @@ void ppu_clock(int cpu_cycles) {
 
 		if (ppu_cycles > 340) {
 			ppu_cycles = 1;
+			counter++;
 			current_line++;
 		}
 
@@ -579,6 +586,7 @@ void ppu_clock(int cpu_cycles) {
 			}
 
 			if (interrupt_occurred == 0) {
+				SDL_UpdateTexture(texture, NULL, framebuffer, WIDTH * 4);
 				SDL_RenderCopy(renderer, texture, NULL, NULL);
 				SDL_RenderPresent(renderer);
 				if (can_generate_nmi()) {

@@ -5,7 +5,7 @@
 #include "rom.h"
 #include "utils.h"
 
-extern unsigned char RAM[0xFFFF];
+extern unsigned char RAM[0xFFFF + 1];
 
 struct ROM rom;
 struct ROM20 rom20;
