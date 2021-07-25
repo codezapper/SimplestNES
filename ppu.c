@@ -83,28 +83,13 @@ uint16_t base_offset = WIDTH * sizeof(uint32_t);
 unsigned char x_scroll = 0;
 unsigned char y_scroll = 0;
 
+unsigned char tiles_cache[2][4][256][8][8][4];
+unsigned char cache_map[2][4][256];
 
 // TODO:
 // Use "v" as the VRAM address when reading/writing
 // Use "t" as the latch for determining address
 // Copy "t" to "v" when the frame starts
-
-// QUOTE:
-/*
-$2000 updates the name table bits in the VRAM address. When accessing name tables, the address register has the following format: 0010NNYY YYYXXXXX
-$2006 writes affect bits 0 through 13 (and clear bits 14 and 15), $2005 writes change the X and Y bits, and $2000 writes change the NN bits.
-One weird aspect of the PPU is that it uses its addresses registers when rendering the image, which is why the scroll settings (set via $2000 and $2005) affect the address registers. Fir rendering purposes, the PPU address registers (t and v have the following format:
-
-0yyyNNYY YYYXXXXX
-
-XXXXX: coarse X scroll;
-YYYYY: coarse Y scroll;
-NN: name table;
-yyy: fine Y scroll;
-(the fine X scroll is kept elsewhere)
-
-When the frame starts, the PPU will automatically copy the value from t to v and use that to determine what part of the background to render, as specified by the bits above.
-*/
 
 uint16_t t = 0;
 uint16_t v = 0;
@@ -376,18 +361,35 @@ void update_palette() {
 	palette[7][3] = VRAM[0x3F1F];
 }
 
-void set_pixel(int x, int y, int color_index, int palette_index, int is_sprite, int shift_x, int shift_y) {
-	if ((color_index == 0) && is_sprite) {
-		return;
-	}
-
-	if ((((x + shift_x) < 0) || ((x + shift_x) > 255)) && (!is_sprite)) {
+void set_sprite_pixel(int x, int y, int color_index, int palette_index, int shift_x, int shift_y) {
+	if (color_index == 0) {
 		return;
 	}
 
 	unsigned char *color = PALETTE[palette[palette_index][color_index]];
 
 	unsigned int offset = (base_offset * (y + shift_y)) + ((x + shift_x) << 2);
+	memcpy(&framebuffer[offset], color, 3);
+}
+
+void set_pixel(int x, int y, int start_x, int start_y, int color_index, int palette_index, int is_sprite, int shift_x, int shift_y, unsigned char bank_id, unsigned char tile_n) {
+	tiles_cache[bank_id][palette_index][tile_n][y][x][0] = PALETTE[palette[palette_index][color_index]][0];
+	tiles_cache[bank_id][palette_index][tile_n][y][x][1] = PALETTE[palette[palette_index][color_index]][1];
+	tiles_cache[bank_id][palette_index][tile_n][y][x][2] = PALETTE[palette[palette_index][color_index]][2];
+	if (color_index == 0) {
+		tiles_cache[bank_id][palette_index][tile_n][y][x][3] = SDL_ALPHA_TRANSPARENT;
+	}
+
+	int final_x = x + start_x + shift_x;
+	int final_y = y + start_y + shift_y;
+
+	if ((((final_x) < 0) || ((final_x) > 255)) && (!is_sprite)) {
+		return;
+	}
+
+	unsigned char *color = PALETTE[palette[palette_index][color_index]];
+
+	unsigned int offset = (base_offset * (final_y)) + ((final_x) << 2);
 	memcpy(&framebuffer[offset], color, 3);
 }
 
@@ -417,24 +419,35 @@ void show_tile(int bank, int tile_n, int row, int col, int shift_x, int shift_y)
 	unsigned char block_id = ((col % 4) / 2) + (((row % 4) / 2) * 2);
 	unsigned char which_palette = (attr_byte >> (block_id * 2)) & 0x03;
 
-	uint16_t tile_address;
+	if (cache_map[bank][which_palette][tile_n] == 0) {
+		uint16_t tile_address = bank_address[bank] + tile_n * 0x10;
 
-	tile_address = bank + tile_n * 0x10;
+		for (int y = 0; y <= 7; y++) {
+			unsigned char upper = VRAM[tile_address + y + 8];
+			unsigned char lower = VRAM[tile_address + y];
 
-	for (int y = 0; y <= 7; y++) {
-		unsigned char upper = VRAM[tile_address + y + 8];
-		unsigned char lower = VRAM[tile_address + y];
+			for (int x = 7; x >= 0; x--) {
+				int value = ((1 & upper) << 1) | (1 & lower);
+				upper >>= 1;
+				lower >>= 1;
 
-		for (int x = 7; x >= 0; x--) {
-			int value = ((1 & upper) << 1) | (1 & lower);
-			upper >>= 1;
-			lower >>= 1;
-
-			if ((tile_n == 0x24) && (value != 0)) {
-				int d = 0;
+				set_pixel(x, y, start_x, start_y, value, which_palette, IS_BACKGROUND, shift_x, shift_y, bank, tile_n);
 			}
-
-			set_pixel(x + start_x, y + start_y, value, which_palette, IS_BACKGROUND, shift_x, shift_y);
+		}
+		cache_map[bank][which_palette][tile_n] = 1;
+	} else {
+		if (((start_x + shift_x) < 0) || ((start_x + shift_x) > 255)) {
+			return;
+		}
+		// unsigned int offset = (base_offset * (start_y + shift_y)) + ((start_x + shift_x) << 2);
+		// memcpy(&framebuffer[offset], &tiles_cache[bank][which_palette][tile_n], 8 * 8 * 4);
+		for (int y = 0; y <= 7; y++) {
+			for (int x = 7; x >= 0; x--) {
+				unsigned int offset = (base_offset * (start_y + y + shift_y)) + ((start_x + x + shift_x) << 2);
+				framebuffer[offset] = tiles_cache[bank][which_palette][tile_n][y][x][0];
+				framebuffer[offset + 1] = tiles_cache[bank][which_palette][tile_n][y][x][1];
+				framebuffer[offset + 2] = tiles_cache[bank][which_palette][tile_n][y][x][2];
+			}
 		}
 	}
 }
@@ -455,7 +468,7 @@ void draw_background(unsigned char nametable_id, int shift_x, int shift_y) {
  	// for (int row = 0; row < 30; row++) {
 		for (int col = 0; col < 32; col++) {
 			uint16_t tile_n = VRAM[nametable_address + ( current_row * 32) + col];
-			show_tile(bank_address[bg_bank], tile_n, current_row, col, shift_x, shift_y);
+			show_tile(bg_bank, tile_n, current_row, col, shift_x, shift_y);
 		}
 	// }
 }
@@ -509,7 +522,7 @@ void show_sprite(int bank, int tile_n, int start_x, int start_y, int attr_byte, 
 				}
 			}
 
-			set_pixel(final_x, final_y, value, which_palette, IS_SPRITE, 0, 0);
+			set_sprite_pixel(final_x, final_y, value, which_palette, 0, 0);
 		}
 	}
 }
@@ -534,6 +547,7 @@ void init_ppu() {
 	init_sdl();
     memcpy(VRAM, rom.chr_rom, 0x1FFF);
 	memset(framebuffer, 0xFF, sizeof(framebuffer));
+	memset(&cache_map, 0, 2*4*256);
 
 	ppuctrl= 0;
 	ppumask = 0;
