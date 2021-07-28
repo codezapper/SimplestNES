@@ -64,6 +64,7 @@ uint16_t get_address_from_params(unsigned char first, unsigned char second, unsi
 
 unsigned char buttons[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 // Order is A, B, SELECT, START, UP, DOWN, LEFT, RIGHT
+// TODO: Make buttons customizable
 int scancodes[8] = {SDL_SCANCODE_J, SDL_SCANCODE_K, SDL_SCANCODE_Q, SDL_SCANCODE_E, SDL_SCANCODE_W, SDL_SCANCODE_S, SDL_SCANCODE_A, SDL_SCANCODE_D};
 
 uint8_t readController1(uint8_t bit) {
@@ -109,6 +110,7 @@ unsigned char cpu_read(unsigned char first, unsigned char second, unsigned char 
                 }
                 return 0x40;
             } else {
+                // TODO: Do not read RAM directly, but use a separate function to support mappers
                 return RAM[value];
             }
     }
@@ -149,6 +151,10 @@ unsigned char ppu_read(uint16_t address) {
 void ppu_write(uint16_t address, unsigned char value) {
     // If it's a PPU register, they're mirrored up to 0x3FFF
     // Maybe 0x2000-0x3FFF ?
+
+    // When reading from an unmapped area (e.g. reading
+    // from a write-only register), the last written value
+    // is returned. This is called "open bus".
     open_bus = value;
 
     if (address == OAMDMA) {
@@ -160,8 +166,9 @@ void ppu_write(uint16_t address, unsigned char value) {
     }
 
     uint16_t offset = (address % 8) + 0x2000;
+    // The PPU has a warm up time of 2 VBLs
     // if ((write_enabled == 0) && (offset >= 0x2003)) {
-        // return;
+    //     return;
     // }
     switch (offset) {
         case PPUCTRL:

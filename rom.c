@@ -43,7 +43,6 @@ void load_rom(char *filename) {
 
     // int mapper = higher_mapper | lower_mapper;
 
-    // printf("mirroring: %d\n", mirroring);
     // printf("battery_backed: %d\n", battery_backed);
     // printf("trainer: %d\n", trainer);
     // printf("ignore_mirroring: %d\n", ignore_mirroring);
@@ -58,8 +57,6 @@ void load_rom(char *filename) {
     // if flag_format01 == 0) && (flag_format02 == 1) {
     // flags 8-15 are in NES format
     //}
-
-    unsigned char prg_rom[32 *1024L];
 
     // if (1 == trainer) {
         // TODO: implement trainer
@@ -86,6 +83,9 @@ void load_rom(char *filename) {
         struct HEADER header;
         memcpy(&header, rom.header, 16);
         mirroring = check_bit(header.flags_6, 0);
+        unsigned char mapper_lower_bit = check_bit(header.flags_6, 7);
+        unsigned char mapper_higher_bit = check_bit(header.flags_7, 7);
+        unsigned char mapper = (mapper_higher_bit << 1) | mapper_lower_bit;
         if (header.prg_blocks > 1) {
             fread(&RAM[0x8000], 1, 16*1024, rom_file);
             fread(&RAM[0xC000], 1, 16*1024, rom_file);

@@ -54,7 +54,6 @@ extern unsigned char interrupt_occurred;
 extern unsigned char interrupt_handled;
 
 extern struct ROM rom;
-// extern struct addressing_data addressing[];
 
 extern int total_cycles;
 extern int current_line;
@@ -111,8 +110,6 @@ void set_OF(unsigned char first, unsigned char second, unsigned char carry) {
 }
 
 void ADC(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    // set_OF(first, second, check_bit(PS, CF));
-
     PS = clear_bit(PS, ZF);
     PS = clear_bit(PS, NF);
     PS = clear_bit(PS, OF);
@@ -177,26 +174,20 @@ void ASL(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void BCC(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    //addressing[0x90].cycles = 2;
     if (check_bit(PS, CF) == 0) {
         PC += (char)get_address_from_params(first, second, addr_mode);
-        //addressing[0x90].cycles = 3;
     }
 }
 
 void BCS(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    //addressing[0xB0].cycles = 2;
     if (check_bit(PS, CF) == 1) {
         PC += (char)get_address_from_params(first, second, addr_mode);
-        //addressing[0xB0].cycles = 3;
     }
 }
 
 void BEQ(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    //addressing[0xF0].cycles = 2;
     if (check_bit(PS, ZF) == 1) {
         PC += (char)get_address_from_params(first, second, addr_mode);
-        //addressing[0xF0].cycles = 3;
     }
 }
 
@@ -212,8 +203,6 @@ void BIT(unsigned char first, unsigned char second, unsigned char addr_mode) {
         PS = set_bit(PS, ZF);
     }
 
-    // PS = (PS & 0x3F) | (value & 0xC0);
-
     if (check_bit(value, 7)) {
         PS = set_bit(PS, NF);
     }
@@ -224,26 +213,20 @@ void BIT(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void BMI(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    //addressing[0xF0].cycles = 2;
     if (check_bit(PS, NF) == 1) {
         PC += (char)get_address_from_params(first, second, addr_mode);
-        //addressing[0xF0].cycles = 3;
     }
 }
 
 void BNE(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    //addressing[0xD0].cycles = 2;
     if (check_bit(PS, ZF) == 0) {
         PC += (char)get_address_from_params(first, second, addr_mode);
-        //addressing[0xD0].cycles = 3;
     }
 }
 
 void BPL(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    //addressing[0x10].cycles = 2;
     if (check_bit(PS, NF) == 0) {
         PC += (char)get_address_from_params(first, second, addr_mode);
-        //addressing[0x10].cycles = 3;
     }
 }
 
@@ -259,18 +242,14 @@ void BRK(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void BVC(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    //addressing[0x50].cycles = 2;
     if (check_bit(PS, OF) == 0) {
         PC += (char)get_address_from_params(first, second, addr_mode);
-        //addressing[0x50].cycles = 3;
     }
 }
 
 void BVS(unsigned char first, unsigned char second, unsigned char addr_mode) {
-    //addressing[0x70].cycles = 2;
     if (check_bit(PS, OF) == 1) {
         PC += (char)get_address_from_params(first, second, addr_mode);
-        //addressing[0x70].cycles = 3;
     }
 }
 

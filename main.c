@@ -16,6 +16,7 @@ void main(int argc, char **argv)
     if (argc < 2)
     {
         printf("Usage: %s filepath\n", argv[0]);
+        exit(1);
     }
 
     init_ram();
@@ -32,7 +33,7 @@ void main(int argc, char **argv)
 			exit(1);
 		}
 		if (e.type == SDL_KEYDOWN) {
-			if (e.key.keysym.sym == 0x1B) {
+			if (e.key.keysym.sym == SDLK_ESCAPE) {
 				exit(1);
 			}
 		}
