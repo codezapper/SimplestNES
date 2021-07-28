@@ -22,10 +22,6 @@ void load_rom(char *filename) {
 
     fread(&rom.header, 16, 1, rom_file);
 
-    // unsigned char mapper1 = rom.header.flags_6 >> 4;
-    // unsigned char mapper2 = rom.header.flags_7 >> 4;
-    // unsigned char mapper = (mapper1 | mapper2) << 4;
-
     if ((rom.header[7] & 0x0C) == 0x08) {
         is_nes_20 = 1;
     }
@@ -83,9 +79,16 @@ void load_rom(char *filename) {
         struct HEADER header;
         memcpy(&header, rom.header, 16);
         mirroring = check_bit(header.flags_6, 0);
-        unsigned char mapper_lower_bit = check_bit(header.flags_6, 7);
-        unsigned char mapper_higher_bit = check_bit(header.flags_7, 7);
-        unsigned char mapper = (mapper_higher_bit << 1) | mapper_lower_bit;
+
+        unsigned char mapper1 = rom.header[6] >> 4;
+        unsigned char mapper2 = rom.header[7] >> 4;
+        unsigned char mapper = (mapper2 << 4) | mapper1;
+
+        // Older dumps wrote this
+        if (memcmp(&rom.header[7], "DiskDude!", 9) == 0) {
+            mapper -= 64;
+        }
+
         if (header.prg_blocks > 1) {
             fread(&RAM[0x8000], 1, 16*1024, rom_file);
             fread(&RAM[0xC000], 1, 16*1024, rom_file);
