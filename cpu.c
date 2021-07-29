@@ -91,7 +91,7 @@ void pop_PC() {
 
 void init_ram()
 {
-    memset(RAM, 0xFF, sizeof(RAM));
+    memset(RAM, 0x00, sizeof(RAM));
 }
 
 void set_OF(unsigned char first, unsigned char second, unsigned char carry) {
@@ -1096,6 +1096,7 @@ void init_cpu() {
     X = 0;
     Y = 0;
     PC = (RAM[0xFFFD] << 8) | RAM[0xFFFC];
+    PS = 0x34;
 }
 
 int cpu_clock() {

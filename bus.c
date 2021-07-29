@@ -159,8 +159,16 @@ void ppu_write(uint16_t address, unsigned char value) {
 
     if (address == OAMDMA) {
         uint16_t cpu_address = value << 8;
-        for (int i = 0; i < 256; i++) {
-            write_dma(i, RAM[cpu_address+i]);
+        unsigned char start_addr = get_oamaddr();
+
+        int cnt_cpu_ram = 0;
+        int cnt_ppu_ram = 0;
+
+        while (cnt_cpu_ram < 256) {
+            int ppu_address = (start_addr + cnt_ppu_ram) % 256;
+            write_dma(ppu_address, RAM[cpu_address + cnt_cpu_ram]);
+            cnt_cpu_ram++;
+            cnt_ppu_ram++;
         }
         return;
     }

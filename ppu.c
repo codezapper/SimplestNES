@@ -163,6 +163,10 @@ unsigned char read_ppustatus() {
     return current;
 }
 
+unsigned char get_oamaddr() {
+	return oamaddr;
+}
+
 void write_oamaddr(unsigned char value) {
     oamaddr = value;
 }
@@ -569,9 +573,12 @@ void ppu_clock(int cpu_cycles) {
 	int end_cycles = cpu_cycles * 3;
 
 	for (int i = 0; i < end_cycles; i++) {
-		if (reset_vbl_cycles >= 2270) {
+		// Experimental value found by trial and error
+		if (reset_vbl_cycles >= 4700) {
 			reset_vbl_cycles = 0;
 			clear_vblank();
+			ppustatus = clear_bit(ppustatus, SPRITE_ZERO_BIT);
+			interrupt_occurred = 0;
 		}
 		total_cycles++;
 		ppu_cycles++;
