@@ -574,7 +574,7 @@ void ppu_clock(int cpu_cycles) {
 
 	for (int i = 0; i < end_cycles; i++) {
 		// Experimental value found by trial and error
-		if (reset_vbl_cycles >= 4700) {
+		if (reset_vbl_cycles >= 5250) {
 			reset_vbl_cycles = 0;
 			clear_vblank();
 			ppustatus = clear_bit(ppustatus, SPRITE_ZERO_BIT);
