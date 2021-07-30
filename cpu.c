@@ -231,13 +231,11 @@ void BPL(unsigned char first, unsigned char second, unsigned char addr_mode) {
 }
 
 void BRK(unsigned char first, unsigned char second, unsigned char addr_mode) {
+    PC += 2;
     push_PC();
-    stack_push(PS);
-
-    PS = set_bit(PS, B4);
-    PS = set_bit(PS, B5);
-    PS = set_bit(PS, ID);
-
+    PC -= 2;
+    PHP(first, second, addr_mode);
+    SEI(first, second, addr_mode);
     PC = (RAM[0xFFFF] << 8) | RAM[0xFFFE];
 }
 
