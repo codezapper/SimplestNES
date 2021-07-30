@@ -83,11 +83,9 @@ uint16_t base_offset = WIDTH * sizeof(uint32_t);
 unsigned char x_scroll = 0;
 unsigned char y_scroll = 0;
 
+int reset_vbl_cycles = 0;
+int counter = 0;
 
-// TODO:
-// Use "v" as the VRAM address when reading/writing
-// Use "t" as the latch for determining address
-// Copy "t" to "v" when the frame starts
 
 // QUOTE:
 /*
@@ -108,6 +106,9 @@ When the frame starts, the PPU will automatically copy the value from t to v and
 
 uint16_t t = 0;
 uint16_t v = 0;
+uint16_t bg_pattern_reg[2] = {0, 0};
+unsigned char bg_palette_reg[2] = {0, 0};
+
 unsigned char w = HIGH;
 
 uint16_t bg_attr_address;
@@ -123,8 +124,28 @@ SDL_Texture *texture;
 
 int current_line = 0;
 int current_row = 0;
+int current_cycle = 0;
 int prev_row = 0;
 int ppu_cycles = 0;
+
+unsigned char framebuffer[WIDTH * HEIGHT * sizeof(uint32_t) * 4];
+
+int bank_address[] = {
+	0x0,
+	0x1000
+};
+
+unsigned char palette[8][4];
+
+struct OAM {
+	unsigned char y;
+	unsigned char tile_n;
+	unsigned char attr_byte;
+	unsigned char x;
+};
+
+struct OAM parsed_oam[64];
+int flipper[8] = {7, 5, 3, 1, -1, -3, -5, -7};
 
 unsigned char PALETTE[0x40][3] = {
    {0x80, 0x80, 0x80}, {0x00, 0x3D, 0xA6}, {0x00, 0x12, 0xB0}, {0x44, 0x00, 0x96}, {0xA1, 0x00, 0x5E}, {0xC7, 0x00, 0x28}, {0xBA, 0x06, 0x00}, {0x8C, 0x17, 0x00}, {0x5C, 0x2F, 0x00}, {0x10, 0x45, 0x00},
@@ -136,19 +157,19 @@ unsigned char PALETTE[0x40][3] = {
    {0x99, 0xFF, 0xFC}, {0xDD, 0xDD, 0xDD}, {0x11, 0x11, 0x11}, {0x11, 0x11, 0x11}
 };
 
-// unsigned char PALETTE[0x40][3] = {
-// 	{0x7C, 0x7C, 0x7C}, {0x00, 0x00, 0xFC}, {0x00, 0x00, 0xBC}, {0x44, 0x28, 0xBC}, {0x94, 0x00, 0x84}, {0xA8, 0x00, 0x20}, {0xA8, 0x10, 0x00}, {0x88, 0x14, 0x00},
-// 	{0x50, 0x30, 0x00}, {0x00, 0x78, 0x00}, {0x00, 0x68, 0x00}, {0x00, 0x58, 0x00}, {0x00, 0x40, 0x58}, {0x00, 0x00, 0x00}, {0x00, 0x00, 0x00}, {0x00, 0x00, 0x00},
-// 	{0xBC, 0xBC, 0xBC}, {0x00, 0x78, 0xF8}, {0x00, 0x58, 0xF8}, {0x68, 0x44, 0xFC}, {0xD8, 0x00, 0xCC}, {0xE4, 0x00, 0x58}, {0xF8, 0x38, 0x00}, {0xE4, 0x5C, 0x10},
-// 	{0xAC, 0x7C, 0x00}, {0x00, 0xB8, 0x00}, {0x00, 0xA8, 0x00}, {0x00, 0xA8, 0x44}, {0x00, 0x88, 0x88}, {0x00, 0x00, 0x00}, {0x00, 0x00, 0x00}, {0x00, 0x00, 0x00},
-// 	{0xF8, 0xF8, 0xF8}, {0x3C, 0xBC, 0xFC}, {0x68, 0x88, 0xFC}, {0x98, 0x78, 0xF8}, {0xF8, 0x78, 0xF8}, {0xF8, 0x58, 0x98}, {0xF8, 0x78, 0x58}, {0xFC, 0xA0, 0x44},
-// 	{0xF8, 0xB8, 0x00}, {0xB8, 0xF8, 0x18}, {0x58, 0xD8, 0x54}, {0x58, 0xF8, 0x98}, {0x00, 0xE8, 0xD8}, {0x78, 0x78, 0x78}, {0x00, 0x00, 0x00}, {0x00, 0x00, 0x00},
-// 	{0xFC, 0xFC, 0xFC}, {0xA4, 0xE4, 0xFC}, {0xB8, 0xB8, 0xF8}, {0xD8, 0xB8, 0xF8}, {0xF8, 0xB8, 0xF8}, {0xF8, 0xA4, 0xC0}, {0xF0, 0xD0, 0xB0}, {0xFC, 0xE0, 0xA8},
-// 	{0xF8, 0xD8, 0x78}, {0xD8, 0xF8, 0x78}, {0xB8, 0xF8, 0xB8}, {0xB8, 0xF8, 0xD8}, {0x00, 0xFC, 0xFC}, {0xF8, 0xD8, 0xF8}, {0x00, 0x00, 0x00}, {0x00, 0x00, 0x00}
-// };
+unsigned char read_vram() {
+	ppu_cycles += 2;
+	return VRAM[v];
+}
+
+void write_vram(int address, unsigned char value) {
+	ppu_cycles += 2;
+	VRAM[v] = value;
+}
 
 void write_ppuctrl(unsigned char value) {
 	ppuctrl = value;
+	v |= ((value & 0b11) << 10);
 }
 
 void write_ppumask(unsigned char value) {
@@ -218,24 +239,7 @@ void mirror_palette() {
 	}
 }
 
-void mirror_v() {
-	if (mirroring == 0) { // Horizontal
-		if ((v >= 0x2400) && (v <= (0x2400+0x400))) {
-			v -= 0x400;
-		} else if ((v >= 0x2C00) && (v <= (0x2C00+0x400))) {
-			v -= 0x400;
-		}
-	} else { // Vertical
-		if ((v >= 0x2800) && (v <= (0x2800 + 0x400))) {
-			v -= 0x800;
-		} else if ((v >= 0x2C00) && (v <= 0x2C00 + 0x400)) {
-			v -= 0x800;
-		}
-	}
-}
-
 void write_ppudata(unsigned char value) {
-	mirror_v();
 
 	if (v >= 0x3F00) {
 		update_palette();
@@ -265,20 +269,15 @@ void write_v(unsigned char value) {
 	if (w == HIGH) {
 		w = LOW;
 		t = value << 8;
-		// v = t;
 	} else {
 		w = HIGH;
 		t |= value;
 		t &= 0x3FFF;
-		// if (check_bit(ppustatus, VBLANK_BIT) == 0) {
-			v = t;
-		// }
+		v = t;
 	}
 }
 
 unsigned char read_ppudata() {
-	mirror_v();
-
 	unsigned char value = ppudata_buffer;
 	ppudata_buffer = VRAM[v];
 	if ((v & 0x3F00) == 0x3F00) {
@@ -329,15 +328,6 @@ void free_ppu()
 	SDL_Quit();
 }
 
-unsigned char framebuffer[WIDTH * HEIGHT * sizeof(uint32_t) * 4];
-
-int bank_address[] = {
-	0x0,
-	0x1000
-};
-
-unsigned char palette[8][4];
-
 void update_palette() {
 	palette[0][0] = VRAM[0x3F00];
 	palette[0][1] = VRAM[0x3F01];
@@ -380,19 +370,11 @@ void update_palette() {
 	palette[7][3] = VRAM[0x3F1F];
 }
 
-void set_pixel(int x, int y, int color_index, int palette_index, int is_sprite, int shift_x, int shift_y) {
-	if ((color_index == 0) && is_sprite) {
-		return;
-	}
-
-	if ((((x + shift_x) < 0) || ((x + shift_x) > 255)) && (!is_sprite)) {
-		return;
-	}
-
-	unsigned char *color = PALETTE[palette[palette_index][color_index]];
-
-	unsigned int offset = (base_offset * (y + shift_y)) + ((x + shift_x) << 2);
-	memcpy(&framebuffer[offset], color, 3);
+void set_pixel(int x, int y, unsigned char R, unsigned char G, unsigned char B) {
+	unsigned int offset = (base_offset * y) + (x * 4); // Times 4 because 4 bytes are needed (including byte for transparency)
+	framebuffer[offset] = R;
+	framebuffer[offset + 1] = G;
+	framebuffer[offset + 2] = B; // Fourth byte is already set to 0xFF in initialization
 }
 
 void dump_vram()
@@ -408,132 +390,6 @@ void dump_vram()
     }
 }
 
-void show_tile(int bank, int tile_n, int row, int col, int shift_x, int shift_y) {
-	int start_x = col * 8;
-	int start_y = row * 8;
-
-	int block_x = col / 4;
-	int block_y = row / 4;
-
-	uint16_t attr_addr = (block_y * 8) + block_x;
-	unsigned char attr_byte = VRAM[bg_attr_address + attr_addr];
-
-	unsigned char block_id = ((col % 4) / 2) + (((row % 4) / 2) * 2);
-	unsigned char which_palette = (attr_byte >> (block_id * 2)) & 0x03;
-
-	uint16_t tile_address;
-
-	tile_address = bank + tile_n * 0x10;
-
-	for (int y = 0; y <= 7; y++) {
-		unsigned char upper = VRAM[tile_address + y + 8];
-		unsigned char lower = VRAM[tile_address + y];
-
-		for (int x = 7; x >= 0; x--) {
-			int value = ((1 & upper) << 1) | (1 & lower);
-			upper >>= 1;
-			lower >>= 1;
-
-			if ((tile_n == 0x24) && (value != 0)) {
-				int d = 0;
-			}
-
-			set_pixel(x + start_x, y + start_y, value, which_palette, IS_BACKGROUND, shift_x, shift_y);
-		}
-	}
-}
-
-void draw_background(unsigned char nametable_id, int shift_x, int shift_y) {
-	if (check_bit(ppumask, BG_ENABLE) == 0) {
-		return;
-	}
-
-	uint16_t nametable_address = 0x2000 + (nametable_id * 0x400);
-
-	int bg_bank = check_bit(ppuctrl, BG_TILE_SELECT);
-	if (nametable_id == 0) {
-		bg_attr_address = 0x23C0;
-	} else {
-		bg_attr_address = 0x27C0;
-	}
- 	// for (int row = 0; row < 30; row++) {
-		for (int col = 0; col < 32; col++) {
-			uint16_t tile_n = VRAM[nametable_address + ( current_row * 32) + col];
-			show_tile(bank_address[bg_bank], tile_n, current_row, col, shift_x, shift_y);
-		}
-	// }
-}
-
-struct OAM {
-	unsigned char y;
-	unsigned char tile_n;
-	unsigned char attr_byte;
-	unsigned char x;
-};
-
-struct OAM parsed_oam[64];
-int flipper[8] = {7, 5, 3, 1, -1, -3, -5, -7};
-
-void check_sprite_zero_hit(unsigned char x, unsigned char y) {
-	int offset = (base_offset * y) + (x << 2);
-
-	if (
-	   (framebuffer[offset] == PALETTE[VRAM[0x3F00]][0]) &&
-	   (framebuffer[offset + 1] == PALETTE[VRAM[0x3F00]][1]) &&
-	   (framebuffer[offset + 2] == PALETTE[VRAM[0x3F00]][2])
-	   ) {
-		return;
-	}
-
-	ppustatus = set_bit(ppustatus, SPRITE_ZERO_BIT);
-}
-
-void show_sprite(int bank, int tile_n, int start_x, int start_y, int attr_byte, int is_sprite_zero) {
-	unsigned char which_palette = (attr_byte & 0x03) + 4;
-	unsigned char flip_h = check_bit(attr_byte, FLIP_HORIZONTAL);
-	unsigned char flip_v = check_bit(attr_byte, FLIP_VERTICAL);
-
-	uint16_t base_address = bank + (tile_n << 4);
-
-	for (int y = 0; y <= 7; y++) {
-		unsigned char upper = VRAM[base_address + y + 8];
-		unsigned char lower = VRAM[base_address + y];
-
-		for (int x = 7; x >= 0; x--) {
-			int value = ((1 & upper) << 1) | (1 & lower);
-			upper >>= 1;
-			lower >>= 1;
-
-			unsigned char final_x = start_x + x - (flipper[7 - x] * flip_h);
-			unsigned char final_y = start_y + y + (flipper[y] * flip_v);
-
-			if (is_sprite_zero) {
-				if (!check_bit(ppustatus, SPRITE_ZERO_BIT) && value) {
-					check_sprite_zero_hit(final_x, final_y);
-				}
-			}
-
-			set_pixel(final_x, final_y, value, which_palette, IS_SPRITE, 0, 0);
-		}
-	}
-}
-
-void draw_sprites() {
-	if (check_bit(ppumask, SPRITES_ENABLE) == 0) {
-		return;
-	}
-
-	memcpy(parsed_oam, oamdata, OAMSIZE);
-
-	int fg_bank = check_bit(ppuctrl, FG_TILE_SELECT);
-
-	for (int i = 0; i < 64; i++) {
-		if (parsed_oam[i].y != 255) {
-			show_sprite(bank_address[fg_bank], parsed_oam[i].tile_n, parsed_oam[i].x, parsed_oam[i].y, parsed_oam[i].attr_byte, (i == 0));
-		}
-	}
-}
-
 void init_ppu() {
 	init_sdl();
     memcpy(VRAM, rom.chr_rom, 0x1FFF);
@@ -546,9 +402,6 @@ void init_ppu() {
 	v = 0;
 	ppudata = 0;
 }
-
-int reset_vbl_cycles = 0;
-int counter = 0;
 
 void render_debug() {
 	char debug[256];
@@ -568,68 +421,101 @@ void render_debug() {
 	SDL_DestroyTexture(text);
 }
 
-void ppu_clock(int cpu_cycles) {
-	reset_vbl_cycles += cpu_cycles;
-	int end_cycles = cpu_cycles * 3;
+unsigned char nametable_id;
 
-	for (int i = 0; i < end_cycles; i++) {
-		// Experimental value found by trial and error
-		if (reset_vbl_cycles >= 5250) {
-			reset_vbl_cycles = 0;
-			clear_vblank();
-			ppustatus = clear_bit(ppustatus, SPRITE_ZERO_BIT);
-			interrupt_occurred = 0;
-		}
-		total_cycles++;
-		ppu_cycles++;
+unsigned char coarse_x_scroll = 0;
+unsigned char coarse_y_scroll = 0;
 
-		if (ppu_cycles > 340) {
-			ppu_cycles = 1;
-			counter++;
-			current_line++;
-		}
+void parse_v() {
+	y_scroll = (v >> 12) & 0b111;
+	nametable_id = (v >> 10) & 0b11;
+	coarse_y_scroll = (v >> 5) & 0b11111;
+	coarse_x_scroll = v & 0b11111;
+}
 
-		if ((current_line < 240) && (ppu_cycles == 1)) {
-				current_row = (int)(current_line / 8);
-				if (current_row != prev_row) {
-					prev_row = current_row;
-					unsigned char nametable_id = (check_bit(ppuctrl, 1) << 1) | check_bit(ppuctrl, 0);
+int end_cycles = 0;
 
-					draw_background(nametable_id, -x_scroll, y_scroll);
-					if (nametable_id == 0) {
-						draw_background(1, 256-x_scroll, y_scroll);
-					} else {
-						draw_background(0, 256-x_scroll, y_scroll);
-					}
-					draw_sprites();
-				}
-		} else if ((current_line == 241) && (ppu_cycles == 1)) {
-			set_vblank();
-			if (write_enabled == 0) {
-				warmup_count++;
-			}
+int fetched_nt_byte = 0;
+int fetched_at_byte = 0;
+int fetched_pt_low = 0;
+int fetched_pt_high = 0;
 
-			if (warmup_count >= 2) {
-				write_enabled = 1;
-			}
+unsigned char nt_byte = 0;
+unsigned char at_byte = 0;
+unsigned char pt_low  = 0;
+unsigned char pt_high = 0;
 
-			if (interrupt_occurred == 0) {
-				SDL_UpdateTexture(texture, NULL, framebuffer, WIDTH * 4);
-				SDL_RenderCopy(renderer, texture, NULL, NULL);
-				// render_debug();
-				SDL_RenderPresent(renderer);
-				if (can_generate_nmi()) {
-					interrupt_handled = 0;
-					interrupt_occurred = NMI_INT;
-				}
-				// v = t;
-			}
-		} else if ((current_line == 261) && (ppu_cycles == 1)) {
-			clear_vblank();
-			ppustatus = clear_bit(ppustatus, SPRITE_ZERO_BIT);
-			interrupt_occurred = 0;
-			current_line = 0;
+int fetch_nt_byte() {
+	if (!fetched_nt_byte) {
+		// TODO: Fetch data
+		fetched_nt_byte = 1;
+		if (ppu_cycles >= end_cycles) {
+			return 0;
 		}
 	}
+	return 1;
+}
+
+int fetch_at_byte() {
+	if (!fetched_at_byte) {
+		// TODO: Fetch data
+		fetched_at_byte = 1;
+		if (ppu_cycles >= end_cycles) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int fetch_pt_low() {
+	if (!fetched_pt_low) {
+		// TODO: Fetch data
+		fetched_pt_low = 1;
+		if (ppu_cycles >= end_cycles) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int fetch_pt_high() {
+	if (!fetched_pt_high) {
+		// TODO: Fetch data
+		fetched_pt_high = 1;
+		if (ppu_cycles >= end_cycles) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+void ppu_clock(int cpu_cycles) {
+	end_cycles = ppu_cycles + (cpu_cycles * 3);
+
+	while (ppu_cycles < end_cycles) {
+		parse_v();
+		if ((current_line == -1) || (current_line == 261)) {
+
+		} else if ((current_line >= 0) || (current_line < 240)) {
+			if (current_cycle == 0) {
+
+			} else if ((current_cycle >= 1) || (current_cycle <= 256)) {
+				if (!(fetch_nt_byte() && fetch_at_byte() && fetch_pt_low() && fetch_pt_high())) {
+					break;
+				}
+				// TODO: Render pixel
+				if ((current_cycle % 8) == 1) {
+
+				}
+			} else if ((current_cycle >= 257) || (current_cycle <= 320)) {
+			} else if ((current_cycle >= 321) || (current_cycle <= 336)) {
+			} else if ((current_cycle >= 337) || (current_cycle <= 340)) {
+			}
+			current_cycle++;
+		} else if (current_line == 240) {
+		} else if ((current_line >= 241) || (current_line <= 260)) {
+		}
+	}
+
 }
 
