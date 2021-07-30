@@ -41,7 +41,7 @@
 unsigned char RAM[0xFFFF];
 
 uint16_t PC = 0;
-uint16_t SP = 0xFD;
+unsigned char SP = 0xFD;
 unsigned char A = 0;
 unsigned char X = 0;
 unsigned char Y = 0;

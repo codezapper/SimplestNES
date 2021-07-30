@@ -6,7 +6,7 @@ extern uint8_t A;
 extern uint8_t X;
 extern uint8_t Y;
 extern uint8_t PS;
-extern uint16_t SP;
+extern unsigned char SP;
 extern uint16_t PC;
 
 uint16_t get_address_from_params(unsigned char first, unsigned char second, unsigned char addr_mode);
