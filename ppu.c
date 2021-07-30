@@ -172,10 +172,11 @@ void write_oamaddr(unsigned char value) {
 }
 
 unsigned char read_oamdata() {
-	if (check_bit(ppustatus, VBLANK_BIT) == 0) {
-		oamaddr++;
-	}
-    return oamdata[oamaddr];
+	// if (check_bit(ppustatus, VBLANK_BIT) == 0) {
+	// }
+	unsigned char value = oamdata[oamaddr];
+	// oamaddr++;
+    return value;
 }
 
 void write_oamdata(unsigned char value) {
@@ -282,7 +283,7 @@ unsigned char read_ppudata() {
 	unsigned char value = ppudata_buffer;
 	ppudata_buffer = VRAM[v];
 	if ((v & 0x3F00) == 0x3F00) {
-		ppudata_buffer = VRAM[v-0x1000];
+		// ppudata_buffer = VRAM[v-0x1000];
 		value = VRAM[v];
 	}
 	v++;
