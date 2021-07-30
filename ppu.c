@@ -284,7 +284,7 @@ unsigned char read_ppudata() {
 	unsigned char value = ppudata_buffer;
 	ppudata_buffer = VRAM[v];
 	if ((v & 0x3F00) == 0x3F00) {
-		// ppudata_buffer = VRAM[v-0x1000];
+		v = 0x3F00 + ((v - 0x3F00) % 0x20);
 		value = VRAM[v];
 	}
 	v++;
