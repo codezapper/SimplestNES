@@ -239,6 +239,7 @@ void write_ppudata(unsigned char value) {
 	mirror_v();
 
 	if (v >= 0x3F00) {
+		v = 0x3F00 + ((v - 0x3F00) % 0x20);
 		update_palette();
 	}
 
