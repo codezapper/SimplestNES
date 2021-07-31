@@ -1094,7 +1094,7 @@ void init_cpu() {
     X = 0;
     Y = 0;
     PC = (RAM[0xFFFD] << 8) | RAM[0xFFFC];
-    PS = 0x34;
+    PS = 0x24;
 }
 
 int cpu_clock() {
